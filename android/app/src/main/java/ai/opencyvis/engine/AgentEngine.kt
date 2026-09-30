@@ -751,8 +751,16 @@ class AgentEngine(
                     }
                     delay(1000)  // Wait for home to render a frame
                 } else {
-                    Log.w(TAG, "VD has task $topTask but no new frame — using cached frame")
+                    Log.w(TAG, "VD has task $topTask but no new frame")
                 }
+            } else if (attempt == VD_CAPTURE_RECOVERY_THRESHOLD + 2) {
+                // Still failing with a task on display — it may be a stale/occluded task
+                // that never renders. Force-launch home so the VD has fresh content.
+                Log.w(TAG, "VD task not rendering after $attempt failures, forcing home launch")
+                withContext(Dispatchers.IO) {
+                    ScreenCapture.backend.ensureVdHasContent(vdm.displayId)
+                }
+                delay(1000)  // Wait for home to render a frame
             } else if (attempt < VD_CAPTURE_MAX_ATTEMPTS) {
                 Log.d(TAG, "VD capture failed at step $step (attempt $attempt/$VD_CAPTURE_MAX_ATTEMPTS), waiting ${VD_CAPTURE_RETRY_DELAY_MS}ms...")
                 delay(VD_CAPTURE_RETRY_DELAY_MS)

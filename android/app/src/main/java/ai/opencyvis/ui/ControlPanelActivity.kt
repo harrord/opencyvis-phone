@@ -870,6 +870,7 @@ class ControlPanelActivity : AppCompatActivity() {
                 recommended = routineDao.getPinnedRoutine()
                     ?: routineDao.getMostUsedRoutine()
                 chips = routineDao.getBuiltinRoutines().filter { !it.isPinned }.toMutableList()
+                chips.addAll(0, routineDao.getCustomRoutines().filter { !it.isPinned })
                 if (config.showDebugRoutines) {
                     chips.addAll(routineDao.getDebugRoutines())
                 }
@@ -1077,6 +1078,8 @@ class ControlPanelActivity : AppCompatActivity() {
                 routineDao.insertRoutine(routine)
             }
             Toast.makeText(this@ControlPanelActivity, R.string.routine_save_success, Toast.LENGTH_SHORT).show()
+            // Switch to homepage so the new custom chip is immediately visible
+            showHomepage()
         }
     }
 

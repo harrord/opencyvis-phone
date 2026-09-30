@@ -27,7 +27,7 @@ interface RoutineDao {
     @Query("SELECT * FROM routines WHERE category = 'builtin' ORDER BY sortOrder ASC")
     fun getBuiltinRoutines(): List<RoutineEntity>
 
-    @Query("SELECT * FROM routines WHERE category = 'custom' ORDER BY lastUsedAt DESC")
+    @Query("SELECT * FROM routines WHERE category = 'custom' ORDER BY createdAt DESC")
     fun getCustomRoutines(): List<RoutineEntity>
 
     @Query("SELECT * FROM routines WHERE category = 'debug' ORDER BY sortOrder ASC")
