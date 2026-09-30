@@ -23,6 +23,7 @@ object ToolSchema {
                         put("type", "string")
                         put("enum", JSONArray().apply {
                             put("tap")
+                            put("long_press")
                             put("open_app")
                             put("swipe")
                             put("key_event")
