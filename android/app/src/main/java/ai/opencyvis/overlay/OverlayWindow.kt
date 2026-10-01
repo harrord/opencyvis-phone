@@ -16,7 +16,6 @@ import android.view.View
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.OvershootInterpolator
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -39,7 +38,6 @@ class OverlayWindow(private val context: Context) {
 
     interface Callback {
         fun onReturnToApp()
-        fun onStop()
     }
 
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -50,9 +48,7 @@ class OverlayWindow(private val context: Context) {
     private var pillView: View? = null
     private var pillParams: WindowManager.LayoutParams? = null
     private var pillDot: View? = null
-    private var pillTask: TextView? = null
     private var pillStep: TextView? = null
-    private var pillStop: ImageButton? = null
 
     // Chat-head (minimized) view — gradient ball
     private var minimizedView: View? = null
@@ -63,10 +59,9 @@ class OverlayWindow(private val context: Context) {
     var maxSteps: Int = 100
 
     var currentInstruction: String = ""
-        set(value) {
-            field = value
-            pillTask?.text = trimTask(value)
-        }
+
+    // Latest per-step status text (same as chat area). Null until the first step result arrives.
+    private var lastStepText: String? = null
 
     private var isExpanded = false
     private var isPrepared = false
@@ -103,16 +98,14 @@ class OverlayWindow(private val context: Context) {
         // Island view (expanded) — centered at top
         pillView = inflater.inflate(R.layout.overlay_window, null)
         pillDot = pillView?.findViewById(R.id.pill_dot)
-        pillTask = pillView?.findViewById(R.id.pill_task)
         pillStep = pillView?.findViewById(R.id.pill_step)
-        pillStop = pillView?.findViewById(R.id.pill_stop)
 
-        pillTask?.text = trimTask(currentInstruction)
+        // Overlay windows can never gain focus, so select the TextView to keep marquee scrolling
+        pillStep?.isSelected = true
 
         pillView?.findViewById<LinearLayout>(R.id.pill_root)?.setOnClickListener {
             setExpanded(false)
         }
-        pillStop?.setOnClickListener { callback?.onStop() }
 
         pillParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -303,7 +296,8 @@ class OverlayWindow(private val context: Context) {
         when (state) {
             is AgentState.Running -> {
                 currentStep = state.step
-                pillStep?.text = if (debugMode) "step ${state.step} / $maxSteps" else context.getString(R.string.overlay_running)
+                if (debugMode) pillStep?.text = "step ${state.step} / $maxSteps"
+                // Normal mode: keep the previous step text until the next StepResult arrives
             }
             is AgentState.WaitingForUser -> {
                 pillStep?.text = context.getString(R.string.overlay_waiting_answer)
@@ -320,12 +314,12 @@ class OverlayWindow(private val context: Context) {
                 val idle = state as AgentState.Idle
                 if (idle.resultMessage != null) {
                     pillStep?.text = context.getString(R.string.overlay_done)
-                    pillStop?.visibility = View.GONE
+                    lastStepText = null
                 }
             }
             is AgentState.Error -> {
                 pillStep?.text = context.getString(R.string.overlay_failed)
-                pillStop?.visibility = View.GONE
+                lastStepText = null
             }
             else -> {}
         }
@@ -334,7 +328,13 @@ class OverlayWindow(private val context: Context) {
 
     fun addStepResult(result: StepResult) {
         currentStep = result.step
-        pillStep?.text = if (debugMode) "step ${result.step} / $maxSteps" else context.getString(R.string.overlay_running)
+        if (debugMode) {
+            pillStep?.text = "step ${result.step} / $maxSteps"
+        } else {
+            // Same real-time status text as the chat area: thought, fallback to detail
+            lastStepText = result.thought.ifBlank { result.detail }
+            pillStep?.text = lastStepText
+        }
     }
 
     private fun applyStateColors() {
@@ -351,9 +351,8 @@ class OverlayWindow(private val context: Context) {
     }
 
     private fun refreshPillText() {
-        pillTask?.text = trimTask(currentInstruction)
         when (val s = _currentState) {
-            is AgentState.Running -> pillStep?.text = if (debugMode) "step ${s.step} / $maxSteps" else context.getString(R.string.overlay_running)
+            is AgentState.Running -> pillStep?.text = if (debugMode) "step ${s.step} / $maxSteps" else (lastStepText ?: context.getString(R.string.overlay_running))
             is AgentState.WaitingForUser -> pillStep?.text = context.getString(R.string.overlay_waiting_answer)
             is AgentState.WaitingForHandoff -> pillStep?.text = context.getString(R.string.overlay_waiting_handoff)
             is AgentState.Paused -> pillStep?.text = if (debugMode) context.getString(R.string.overlay_paused_takeover) else context.getString(R.string.overlay_paused)
@@ -374,11 +373,6 @@ class OverlayWindow(private val context: Context) {
             interpolator = AccelerateDecelerateInterpolator()
             start()
         }
-    }
-
-    private fun trimTask(text: String): String {
-        if (text.isBlank()) return "OpenCyvis"
-        return if (text.length > 20) text.take(20) + "…" else text
     }
 
     // ── Drag handling ──────────────────────────────────────────────────────

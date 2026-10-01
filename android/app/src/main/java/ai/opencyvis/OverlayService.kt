@@ -128,9 +128,6 @@ class OverlayService : Service() {
                     }
                     startActivity(intent)
                 }
-                override fun onStop() {
-                    agentService?.stopAgent()
-                }
             }
             // Inflate the views and wire callbacks, but DO NOT attach to the
             // WindowManager yet — `evaluateVisibility()` is the only path
