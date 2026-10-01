@@ -55,7 +55,8 @@ Memory rules:
 - For temporary task info (e.g., prices found during comparison, page state), use note in 'key: value' format — visible only in subsequent steps of the current task.
 - For stable long-term user preferences, frequently used info, or workflow habits, use remember(memory_key, memory_value, memory_category) — stored in global memory and visible in future tasks. Only use remember for confirmed long-term stable information.
 
-Available actions: tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter)
+Available actions: tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter)
+- sleep(duration_seconds): Sleep for the exact duration in seconds (convert minutes: 2 min = 120). ONLY use when the user explicitly requires waiting a specific duration between steps — never skip a user-requested wait. For page loading, processing, or re-observing, use wait instead — never sleep in those cases.
 - list_apps(keyword): Search installed apps by keyword. Returns matching app names you can use with open_app. Use when open_app fails to find an app.
 - note action: Record important current task information (e.g., prices, model numbers), format 'key: value' (e.g., 'JD price: 5999 yuan'). Recorded info is visible in every subsequent step of this task.
 - You can also attach a note parameter when performing other actions (e.g., tap, open_app) to record info without a separate step.
@@ -90,7 +91,8 @@ Routine & schedule rules:
 - 临时任务信息（如本轮比价中查到的价格、页面状态）用 note，格式为 'key: value'，只在当前任务后续步骤可见。
 - 长期稳定的用户偏好、常用信息、工作流习惯用 remember(memory_key, memory_value, memory_category)，会写入全局记忆，并在后续任务中可见。只有确定是长期稳定信息时才 remember。
 
-可用操作：tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter)
+可用操作：tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter)
+- sleep(duration_seconds)：按指定时长等待，单位为秒（分钟需换算：2分钟=120）。仅当用户明确要求步骤之间等待特定时长时使用，不得跳过用户要求的等待。页面加载、处理中重新观察等场景一律用 wait，禁止用 sleep。
 - list_apps(keyword)：按关键词搜索已安装的应用，返回匹配的应用名称列表，可配合 open_app 使用。当 open_app 找不到应用时使用。
 - note 操作：用于记录当前任务重要信息（如价格、型号），格式为 'key: value'（如 '京东价格: 5999元'）。记录的信息会在本任务后续每一步可见。
 - 你也可以在执行其他操作（如 tap、open_app）时同时附带 note 参数来记录信息，不需要单独一步。
@@ -115,6 +117,7 @@ Routine & schedule rules:
         "direction" to "Swipe direction (for swipe)",
         "key" to "Key name (for key_event)",
         "text" to "Text to input (for type_text)",
+        "duration_seconds" to "Sleep duration in seconds (for sleep). Convert minutes to seconds, e.g. 2 minutes = 120. Range 1-600.",
         "reason" to "Failure reason (for fail)",
         "question" to "Question for the user when clarification or confirmation is needed (for ask_user)",
         "handoff_reason" to "Explanation when the user needs to input passwords, PINs, payment passwords, lock screen passwords, or other sensitive information on the device directly (for handoff_user). Do not ask the user to tell the agent sensitive information.",
@@ -145,6 +148,7 @@ Routine & schedule rules:
         "direction" to "滑动方向（swipe时使用）",
         "key" to "按键名（key_event时使用）",
         "text" to "要输入的文本（type_text时使用）",
+        "duration_seconds" to "sleep 的等待时长，单位秒（sleep时使用）。分钟需换算成秒，如 2分钟 = 120。范围 1-600。",
         "reason" to "失败原因（fail时使用）",
         "question" to "当需要用户澄清或确认时的问题（ask_user时使用）",
         "handoff_reason" to "当需要用户亲自在设备上输入密码、PIN、支付密码、锁屏密码等敏感信息时的说明（handoff_user时使用）。不要请求用户把敏感信息告诉agent。",

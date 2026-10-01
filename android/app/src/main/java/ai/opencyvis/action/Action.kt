@@ -42,6 +42,11 @@ sealed class Action(val typeName: String, open val thought: String) {
         override val thought: String = ""
     ) : Action("wait", thought)
 
+    data class Sleep(
+        val durationSeconds: Int,
+        override val thought: String = ""
+    ) : Action("sleep", thought)
+
     data class Finish(
         override val thought: String = "",
         val suggestedRoutineName: String? = null,
@@ -148,6 +153,10 @@ sealed class Action(val typeName: String, open val thought: String) {
                     thought = thought
                 )
                 "wait" -> Wait(thought = thought)
+                "sleep" -> Sleep(
+                    durationSeconds = (extractInt(map["duration_seconds"]) ?: 60).coerceIn(1, 600),
+                    thought = thought
+                )
                 "finish" -> Finish(
                     thought = thought,
                     suggestedRoutineName = map["suggested_routine_name"] as? String,

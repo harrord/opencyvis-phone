@@ -29,6 +29,7 @@ object ToolSchema {
                             put("key_event")
                             put("type_text")
                             put("wait")
+                            put("sleep")
                             put("finish")
                             put("fail")
                             put("ask_user")
@@ -74,6 +75,10 @@ object ToolSchema {
                     put("text", JSONObject().apply {
                         put("type", "string")
                         put("description", LlmPrompts.paramDescription("text"))
+                    })
+                    put("duration_seconds", JSONObject().apply {
+                        put("type", "integer")
+                        put("description", LlmPrompts.paramDescription("duration_seconds"))
                     })
                     put("reason", JSONObject().apply {
                         put("type", "string")

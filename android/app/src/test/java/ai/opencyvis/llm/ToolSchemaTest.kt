@@ -320,8 +320,9 @@ class ToolSchemaTest {
     @Test
     fun `all action_type enum values are present in real schema`() {
         val expectedActions = setOf(
-            "tap", "open_app", "swipe", "key_event", "type_text",
-            "wait", "finish", "fail", "ask_user", "handoff_user", "note", "remember"
+            "tap", "long_press", "open_app", "swipe", "key_event", "type_text",
+            "wait", "sleep", "finish", "fail", "ask_user", "handoff_user", "note",
+            "remember", "save_routine"
         )
 
         val enumArray = actualProperties()

@@ -112,6 +112,11 @@ class ActionExecutor(
                     true to "Waited 2s"
                 }
 
+                is Action.Sleep -> {
+                    delay(action.durationSeconds * 1000L)
+                    true to "Slept ${action.durationSeconds}s"
+                }
+
                 is Action.Finish -> {
                     true to "Task finished"
                 }
