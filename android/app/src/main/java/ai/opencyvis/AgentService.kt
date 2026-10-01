@@ -147,6 +147,11 @@ class AgentService : Service() {
     private var disconnectTimestamp: Long? = null
     private var disconnectObserverJob: Job? = null
 
+    // 本次运行的计划追踪:Stop 只取消本次运行期间由 save_routine 新建的闹钟,
+    // 运行开始前已存在的计划不受影响
+    @Volatile private var runStopped = false
+    private val runCreatedScheduleIds = java.util.concurrent.ConcurrentHashMap.newKeySet<Int>()
+
     inner class AgentBinder : Binder() {
         fun getService(): AgentService = this@AgentService
     }
@@ -335,6 +340,9 @@ class AgentService : Service() {
 
         lastHistoryStatus = null
         cancelCompletionNotification()
+        // 重置本次运行的计划追踪
+        runStopped = false
+        runCreatedScheduleIds.clear()
         // Create or re-create engine with current config
         engine?.destroy()
         stateObserverJob?.cancel()
@@ -460,7 +468,19 @@ class AgentService : Service() {
                         )
                         val id = dao.insertRoutine(routine).toInt()
                         if (schedType != null) {
-                            ScheduleManager.register(this@AgentService, routine.copy(id = id))
+                            runCreatedScheduleIds.add(id)
+                            if (runStopped) {
+                                // 运行已被 Stop:不注册闹钟,并把该例行任务的计划标记为关闭
+                                ScheduleManager.cancel(this@AgentService, id)
+                                dao.setScheduleEnabled(id, false)
+                            } else {
+                                ScheduleManager.register(this@AgentService, routine.copy(id = id))
+                                if (runStopped) {
+                                    // Stop 恰在注册瞬间发生:立即撤销刚注册的闹钟
+                                    ScheduleManager.cancel(this@AgentService, id)
+                                    dao.setScheduleEnabled(id, false)
+                                }
+                            }
                         }
                         Log.i(TAG, "Saved routine '$name' (id=$id, schedule=$schedType)")
                     }
@@ -979,6 +999,17 @@ class AgentService : Service() {
         historyObserverJob?.cancel()
         askObserverJob?.cancel()
         cancelAskNotification()
+
+        // 用户手动 Stop:取消本次运行过程中新建的闹钟计划,运行前已存在的计划不受影响
+        runStopped = true
+        scope.launch(Dispatchers.IO) {
+            val dao = AppDatabase.getInstance(this@AgentService).routineDao()
+            runCreatedScheduleIds.forEach { id ->
+                ScheduleManager.cancel(this@AgentService, id)
+                dao.setScheduleEnabled(id, false)
+                Log.i(TAG, "Stop: cancelled run-created schedule, routine=$id")
+            }
+        }
 
         currentConversationId?.let { convId ->
             scope.launch { historyRepo.updateStatus(convId, "stopped") }
