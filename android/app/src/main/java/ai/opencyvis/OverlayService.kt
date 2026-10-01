@@ -3,18 +3,23 @@ package ai.opencyvis
 import android.app.Activity
 import android.app.Application
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.ServiceConnection
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
+import android.view.WindowManager
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import ai.opencyvis.config.ConfigRepository
 import ai.opencyvis.engine.AgentState
+import ai.opencyvis.overlay.BlackoutOverlay
 import ai.opencyvis.overlay.OverlayWindow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +27,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.lang.ref.WeakReference
 
 /**
  * Hosts the slim floating overlay (chat-head ⇄ pill).
@@ -56,6 +62,12 @@ class OverlayService : Service() {
     private var stepResultCollectionJob: Job? = null
     private var isAppInForeground = false
 
+    // 黑屏挂机遮罩（双击胶囊进入）
+    private var blackoutOverlay: BlackoutOverlay? = null
+    private var screenOffReceiver: BroadcastReceiver? = null
+    // 当前处于前台的 Activity（弱引用防泄漏），用于"任务运行时保持常亮"给其 window 加/清 flag
+    private var currentActivity = WeakReference<Activity>(null)
+
     private val processLifecycleObserver = object : DefaultLifecycleObserver {
         override fun onStart(owner: LifecycleOwner) {
             isAppInForeground = true
@@ -74,12 +86,16 @@ class OverlayService : Service() {
         override fun onActivityCreated(a: Activity, b: Bundle?) {}
         override fun onActivityStarted(a: Activity) {}
         override fun onActivityResumed(a: Activity) {
+            currentActivity = WeakReference(a)
             if (a.javaClass.`package`?.name?.startsWith("ai.opencyvis") == true) {
                 lastForegroundActivityClass = a.javaClass
                 Log.d(TAG, "lastForegroundActivity = ${a.javaClass.simpleName}")
             }
+            applyKeepScreenOn(a)
         }
-        override fun onActivityPaused(a: Activity) {}
+        override fun onActivityPaused(a: Activity) {
+            if (currentActivity.get() === a) currentActivity.clear()
+        }
         override fun onActivityStopped(a: Activity) {}
         override fun onActivitySaveInstanceState(a: Activity, b: Bundle) {}
         override fun onActivityDestroyed(a: Activity) {}
@@ -128,6 +144,10 @@ class OverlayService : Service() {
                     }
                     startActivity(intent)
                 }
+
+                override fun onPillDoubleTap() {
+                    enterBlackout()
+                }
             }
             // Inflate the views and wire callbacks, but DO NOT attach to the
             // WindowManager yet — `evaluateVisibility()` is the only path
@@ -143,6 +163,7 @@ class OverlayService : Service() {
     }
 
     override fun onDestroy() {
+        exitBlackout()
         ProcessLifecycleOwner.get().lifecycle.removeObserver(processLifecycleObserver)
         application.unregisterActivityLifecycleCallbacks(activityCallbacks)
         overlayWindow?.dismiss()
@@ -190,8 +211,15 @@ class OverlayService : Service() {
                 var wasRunning = false
                 stateFlow.collect { state ->
                     overlayWindow?.updateState(state)
+                    applyKeepScreenOn(currentActivity.get())
                     if (state is AgentState.Running) wasRunning = true
                     if (wasRunning && (state is AgentState.Idle || state is AgentState.Error)) {
+                        // 任务结束：按配置同步退出黑屏遮罩
+                        if (blackoutOverlay != null &&
+                            ConfigRepository(this@OverlayService).overlayDimDismissOnTaskEnd
+                        ) {
+                            exitBlackout()
+                        }
                         kotlinx.coroutines.delay(3000)
                         wasRunning = false
                     }
@@ -215,11 +243,84 @@ class OverlayService : Service() {
      * "active" state (Running / WaitingForUser / Paused-takeover).
      */
     private fun evaluateVisibility() {
+        // 黑屏遮罩显示期间不显示胶囊，避免任务状态变化导致胶囊浮到遮罩之上
+        if (blackoutOverlay != null) {
+            overlayWindow?.detach()
+            return
+        }
         val service = agentService
         val state = service?.stateFlow?.value
         val active = service?.isOverlayActiveState(state) == true
         val shouldShow = !isAppInForeground && active
         Log.d(TAG, "evaluateVisibility: fg=$isAppInForeground active=$active → show=$shouldShow")
         if (shouldShow) overlayWindow?.attach() else overlayWindow?.detach()
+    }
+
+    // ── 黑屏挂机遮罩（双击胶囊进入） ───────────────────────────────────────
+
+    private fun enterBlackout() {
+        val config = ConfigRepository(this)
+        if (!config.overlayDimEnabled) return
+        if (blackoutOverlay != null) return
+        val overlay = BlackoutOverlay(
+            this,
+            config.overlayDimExitTaps,
+            config.overlayDimKeepScreenOn
+        ) { exitBlackout() }
+        blackoutOverlay = overlay
+        overlay.show()
+        registerScreenOffReceiver()
+        overlayWindow?.detach()
+        Log.i(TAG, "Blackout entered")
+    }
+
+    /** 幂等：退出遮罩、注销锁屏监听，并让 evaluateVisibility 恢复胶囊显隐。 */
+    private fun exitBlackout() {
+        val overlay = blackoutOverlay ?: return
+        blackoutOverlay = null
+        unregisterScreenOffReceiver()
+        overlay.dismiss()
+        evaluateVisibility()
+        Log.i(TAG, "Blackout exited")
+    }
+
+    /** 锁屏（或系统超时熄屏）时退出黑屏遮罩，解锁后看到正常界面。仅在遮罩期间注册。 */
+    private fun registerScreenOffReceiver() {
+        if (screenOffReceiver != null) return
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == Intent.ACTION_SCREEN_OFF) exitBlackout()
+            }
+        }
+        val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(receiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(receiver, filter)
+        }
+        screenOffReceiver = receiver
+    }
+
+    private fun unregisterScreenOffReceiver() {
+        val receiver = screenOffReceiver ?: return
+        screenOffReceiver = null
+        try { unregisterReceiver(receiver) } catch (_: Exception) {}
+    }
+
+    // ── 任务运行时保持屏幕常亮（独立设置） ─────────────────────────────────
+
+    /** 任务活跃且配置开启时给前台 Activity 加 FLAG_KEEP_SCREEN_ON，否则清除。
+     *  在 onActivityResumed 与任务状态变化时调用。 */
+    private fun applyKeepScreenOn(activity: Activity?) {
+        val target = activity ?: return
+        val state = agentService?.stateFlow?.value
+        val active = agentService?.isOverlayActiveState(state) == true
+        val keepOn = ConfigRepository(this).keepScreenOnWhileRunning && active
+        if (keepOn) {
+            target.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            target.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 }

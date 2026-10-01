@@ -177,6 +177,43 @@
             android:entryValues="@array/overlay_auto_collapse_values"
             android:defaultValue="10" />
 
+        <SwitchPreference
+            android:key="overlay_dim_enabled"
+            android:title="@string/pref_overlay_dim_enabled_title"
+            android:summary="@string/pref_overlay_dim_enabled_summary"
+            android:defaultValue="true" />
+
+        <ListPreference
+            android:key="overlay_dim_exit_taps"
+            android:title="@string/pref_overlay_dim_exit_taps_title"
+            android:summary="%s"
+            android:entries="@array/overlay_dim_exit_taps_entries"
+            android:entryValues="@array/overlay_dim_exit_taps_values"
+            android:defaultValue="4" />
+
+        <SwitchPreference
+            android:key="overlay_dim_keep_screen_on"
+            android:title="@string/pref_overlay_dim_keep_screen_on_title"
+            android:summary="@string/pref_overlay_dim_keep_screen_on_summary"
+            android:defaultValue="true" />
+
+        <SwitchPreference
+            android:key="overlay_dim_dismiss_on_task_end"
+            android:title="@string/pref_overlay_dim_dismiss_on_task_end_title"
+            android:summary="@string/pref_overlay_dim_dismiss_on_task_end_summary"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+    <!-- Other -->
+    <PreferenceCategory app:title="@string/pref_category_other">
+
+        <SwitchPreference
+            android:key="keep_screen_on_while_running"
+            android:title="@string/pref_keep_screen_on_running_title"
+            android:summary="@string/pref_keep_screen_on_running_summary"
+            android:defaultValue="false" />
+
     </PreferenceCategory>
 
     <!-- Developer -->

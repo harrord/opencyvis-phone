@@ -9,6 +9,7 @@ import android.graphics.drawable.GradientDrawable
 import android.util.Log
 import android.os.Handler
 import android.os.Looper
+import android.view.GestureDetector
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -38,6 +39,8 @@ class OverlayWindow(private val context: Context) {
 
     interface Callback {
         fun onReturnToApp()
+        /** 双击胶囊：请求进入黑屏挂机遮罩 */
+        fun onPillDoubleTap() {}
     }
 
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -70,6 +73,20 @@ class OverlayWindow(private val context: Context) {
     private var _currentState: AgentState = AgentState.Idle()
 
     private val dragSlop: Int = (10 * context.resources.displayMetrics.density).toInt()
+
+    // 胶囊手势：单击收起 + 双击进入黑屏挂机遮罩。
+    // onSingleTapConfirmed 需等待双击超时窗口（约 300ms），单击收起会略有延迟。
+    private val pillGestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent): Boolean = true
+        override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+            setExpanded(false)
+            return true
+        }
+        override fun onDoubleTap(e: MotionEvent): Boolean {
+            callback?.onPillDoubleTap()
+            return true
+        }
+    })
     private var glowAnimator: ObjectAnimator? = null
     private var dotAnimator: ObjectAnimator? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -103,8 +120,8 @@ class OverlayWindow(private val context: Context) {
         // Overlay windows can never gain focus, so select the TextView to keep marquee scrolling
         pillStep?.isSelected = true
 
-        pillView?.findViewById<LinearLayout>(R.id.pill_root)?.setOnClickListener {
-            setExpanded(false)
+        pillView?.findViewById<LinearLayout>(R.id.pill_root)?.setOnTouchListener { _, event ->
+            pillGestureDetector.onTouchEvent(event)
         }
 
         pillParams = WindowManager.LayoutParams(
@@ -170,6 +187,7 @@ class OverlayWindow(private val context: Context) {
         val params = if (isExpanded) pillParams else minimizedParams
         try {
             if (view != null && params != null && !view.isAttachedToWindow) {
+                applyKeepScreenOnFlag(params)
                 windowManager.addView(view, params)
                 attachCount++
                 // Entry animation
@@ -252,6 +270,7 @@ class OverlayWindow(private val context: Context) {
         }
         try {
             if (newView != null && newParams != null && !newView.isAttachedToWindow) {
+                applyKeepScreenOnFlag(newParams)
                 windowManager.addView(newView, newParams)
                 // Transition animation
                 if (expanded) {
@@ -282,6 +301,17 @@ class OverlayWindow(private val context: Context) {
     private fun autoCollapseMs(): Long {
         val seconds = config.overlayAutoCollapseSeconds
         return if (seconds > 0) seconds * 1000L else -1L
+    }
+
+    /** 任务运行期间保持屏幕常亮（独立设置）：根据配置给悬浮窗窗口加/清 FLAG_KEEP_SCREEN_ON。
+     *  悬浮窗只在任务活跃时显示，且配置变更必然发生在 App 前台（悬浮窗已隐藏），
+     *  因此在每次 addView 前应用即可拿到最新配置。 */
+    private fun applyKeepScreenOnFlag(params: WindowManager.LayoutParams) {
+        if (config.keepScreenOnWhileRunning) {
+            params.flags = params.flags or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        } else {
+            params.flags = params.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON.inv()
+        }
     }
 
     fun isAttachedForTest(): Boolean = isAttached

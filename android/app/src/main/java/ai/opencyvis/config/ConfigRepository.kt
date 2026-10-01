@@ -15,6 +15,11 @@ class ConfigRepository(context: Context) {
         private const val KEY_DEBUG_MODE = "debug_mode"
         private const val KEY_SHOW_DEBUG_ROUTINES = "show_debug_routines"
         private const val KEY_OVERLAY_AUTO_COLLAPSE_SECONDS = "overlay_auto_collapse_seconds"
+        private const val KEY_OVERLAY_DIM_ENABLED = "overlay_dim_enabled"
+        private const val KEY_OVERLAY_DIM_EXIT_TAPS = "overlay_dim_exit_taps"
+        private const val KEY_OVERLAY_DIM_KEEP_SCREEN_ON = "overlay_dim_keep_screen_on"
+        private const val KEY_OVERLAY_DIM_DISMISS_ON_TASK_END = "overlay_dim_dismiss_on_task_end"
+        private const val KEY_KEEP_SCREEN_ON_WHILE_RUNNING = "keep_screen_on_while_running"
         private const val KEY_ACTIVE_PROFILE = "active_profile"
         private const val KEY_IM_REMOTE_ENABLED = "im_remote_enabled"
         private const val KEY_IM_SEND_STEP_SCREENSHOTS = "im_send_step_screenshots"
@@ -42,6 +47,16 @@ class ConfigRepository(context: Context) {
         const val DEFAULT_MAX_STEPS = 100
         /** 悬浮窗胶囊自动收起时长（秒），-1 表示永不自动收起 */
         const val DEFAULT_OVERLAY_AUTO_COLLAPSE_SECONDS = 10L
+        /** 双击胶囊进入黑屏挂机遮罩，默认开启 */
+        const val DEFAULT_OVERLAY_DIM_ENABLED = true
+        /** 退出黑屏遮罩所需的连续点击次数 */
+        const val DEFAULT_OVERLAY_DIM_EXIT_TAPS = 4
+        /** 黑屏遮罩期间保持屏幕常亮 */
+        const val DEFAULT_OVERLAY_DIM_KEEP_SCREEN_ON = true
+        /** 任务结束后黑屏遮罩同步消失 */
+        const val DEFAULT_OVERLAY_DIM_DISMISS_ON_TASK_END = true
+        /** 任务运行期间保持屏幕常亮、不熄屏，默认关闭 */
+        const val DEFAULT_KEEP_SCREEN_ON_WHILE_RUNNING = false
 
         /** Returns true if model or url matches any known provider default.
          *  SettingsActivity uses this to decide whether to auto-fill defaults when
@@ -117,6 +132,38 @@ class ConfigRepository(context: Context) {
             }
         }
         set(value) = prefs.edit().putString(KEY_OVERLAY_AUTO_COLLAPSE_SECONDS, value.toString()).apply()
+
+    /** 双击胶囊进入全屏黑屏挂机遮罩 */
+    var overlayDimEnabled: Boolean
+        get() = prefs.getBoolean(KEY_OVERLAY_DIM_ENABLED, DEFAULT_OVERLAY_DIM_ENABLED)
+        set(value) = prefs.edit().putBoolean(KEY_OVERLAY_DIM_ENABLED, value).apply()
+
+    /** 退出黑屏遮罩所需的连续点击次数。由设置页 ListPreference 以 String 写入，这里按 Int 读取。 */
+    var overlayDimExitTaps: Int
+        get() {
+            return try {
+                prefs.getString(KEY_OVERLAY_DIM_EXIT_TAPS, null)?.toIntOrNull()
+                    ?: DEFAULT_OVERLAY_DIM_EXIT_TAPS
+            } catch (_: ClassCastException) {
+                DEFAULT_OVERLAY_DIM_EXIT_TAPS
+            }
+        }
+        set(value) = prefs.edit().putString(KEY_OVERLAY_DIM_EXIT_TAPS, value.toString()).apply()
+
+    /** 黑屏遮罩期间保持屏幕常亮 */
+    var overlayDimKeepScreenOn: Boolean
+        get() = prefs.getBoolean(KEY_OVERLAY_DIM_KEEP_SCREEN_ON, DEFAULT_OVERLAY_DIM_KEEP_SCREEN_ON)
+        set(value) = prefs.edit().putBoolean(KEY_OVERLAY_DIM_KEEP_SCREEN_ON, value).apply()
+
+    /** 任务结束后黑屏遮罩同步消失 */
+    var overlayDimDismissOnTaskEnd: Boolean
+        get() = prefs.getBoolean(KEY_OVERLAY_DIM_DISMISS_ON_TASK_END, DEFAULT_OVERLAY_DIM_DISMISS_ON_TASK_END)
+        set(value) = prefs.edit().putBoolean(KEY_OVERLAY_DIM_DISMISS_ON_TASK_END, value).apply()
+
+    /** 任务运行期间保持屏幕常亮、不熄屏（前台与后台均生效） */
+    var keepScreenOnWhileRunning: Boolean
+        get() = prefs.getBoolean(KEY_KEEP_SCREEN_ON_WHILE_RUNNING, DEFAULT_KEEP_SCREEN_ON_WHILE_RUNNING)
+        set(value) = prefs.edit().putBoolean(KEY_KEEP_SCREEN_ON_WHILE_RUNNING, value).apply()
 
     var showDebugRoutines: Boolean
         get() = prefs.getBoolean(KEY_SHOW_DEBUG_ROUTINES, false)

@@ -36,6 +36,7 @@
     <string name="pref_category_remote_control">远程控制</string>
     <string name="pref_category_security">安全</string>
     <string name="pref_category_overlay">悬浮窗</string>
+    <string name="pref_category_other">其他</string>
     <string name="pref_category_developer">开发者</string>
     <string name="pref_category_about">关于</string>
     <string name="pref_app_blacklist">应用黑名单</string>
@@ -50,6 +51,22 @@
     <string name="pref_max_steps_title">最大步数</string>
     <string name="pref_max_steps_summary">Agent 最大执行步数</string>
     <string name="pref_overlay_auto_collapse_title">自动收起时长</string>
+    <string name="pref_overlay_dim_enabled_title">双击胶囊进入黑屏模式</string>
+    <string name="pref_overlay_dim_enabled_summary">任务执行时双击顶部胶囊，显示全屏黑色遮罩并将亮度降至最低</string>
+    <string name="pref_overlay_dim_exit_taps_title">退出黑屏所需点击次数</string>
+    <string name="pref_overlay_dim_keep_screen_on_title">黑屏期间保持屏幕常亮</string>
+    <string name="pref_overlay_dim_keep_screen_on_summary">遮罩显示期间不自动锁屏</string>
+    <string name="pref_overlay_dim_dismiss_on_task_end_title">任务结束后自动退出黑屏</string>
+    <string name="pref_overlay_dim_dismiss_on_task_end_summary">任务完成或失败时自动移除遮罩并恢复亮度</string>
+    <string name="pref_keep_screen_on_running_title">任务运行时保持屏幕常亮</string>
+    <string name="pref_keep_screen_on_running_summary">任务执行期间屏幕不熄屏（前台与后台均生效）</string>
+    <string-array name="overlay_dim_exit_taps_entries">
+        <item>2 次</item>
+        <item>3 次</item>
+        <item>4 次</item>
+        <item>5 次</item>
+    </string-array>
+    <string name="blackout_exit_hint">连续快速点击 %1$d 次或锁屏后解锁，退出黑屏模式</string>
     <string-array name="overlay_auto_collapse_entries">
         <item>5 秒</item>
         <item>10 秒</item>
