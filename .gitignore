@@ -14,3 +14,4 @@ android/app/libs/framework-stubs.jar
 android/app/.cxx/
 android/build/
 .idea/
+*.salive

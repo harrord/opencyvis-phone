@@ -5,7 +5,9 @@ import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
+import android.graphics.drawable.ClipDrawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.util.Log
 import android.os.Handler
 import android.os.Looper
@@ -52,6 +54,8 @@ class OverlayWindow(private val context: Context) {
     private var pillParams: WindowManager.LayoutParams? = null
     private var pillDot: View? = null
     private var pillStep: TextView? = null
+    // 胶囊背景中表示已执行步数的灰色 clip 段
+    private var pillProgressClip: ClipDrawable? = null
 
     // Chat-head (minimized) view — gradient ball
     private var minimizedView: View? = null
@@ -60,6 +64,11 @@ class OverlayWindow(private val context: Context) {
 
     var callback: Callback? = null
     var maxSteps: Int = 100
+        set(value) {
+            field = value
+            // 分母变化后按当前步数重算进度
+            updateProgress(currentStep)
+        }
 
     var currentInstruction: String = ""
 
@@ -89,6 +98,7 @@ class OverlayWindow(private val context: Context) {
     })
     private var glowAnimator: ObjectAnimator? = null
     private var dotAnimator: ObjectAnimator? = null
+    private var progressBlinkAnimator: ValueAnimator? = null
     private val handler = Handler(Looper.getMainLooper())
     private val autoCollapseRunnable = Runnable { setExpanded(false) }
 
@@ -120,9 +130,13 @@ class OverlayWindow(private val context: Context) {
         // Overlay windows can never gain focus, so select the TextView to keep marquee scrolling
         pillStep?.isSelected = true
 
-        pillView?.findViewById<LinearLayout>(R.id.pill_root)?.setOnTouchListener { _, event ->
+        val pillRoot = pillView?.findViewById<LinearLayout>(R.id.pill_root)
+        pillRoot?.setOnTouchListener { _, event ->
             pillGestureDetector.onTouchEvent(event)
         }
+        // 胶囊背景（bg_pill_progress）中表示已执行步数的灰色 clip 段
+        pillProgressClip = (pillRoot?.background as? LayerDrawable)
+            ?.findDrawableByLayerId(R.id.pill_progress_clip) as? ClipDrawable
 
         pillParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -217,6 +231,8 @@ class OverlayWindow(private val context: Context) {
         } catch (e: Exception) {
             Log.w(TAG, "attach: addView failed: ${e.message}")
         }
+        // 胶囊可见后，按当前步数同步背景进度与闪烁状态
+        if (isExpanded) updateProgress(currentStep)
     }
 
     fun detach() {
@@ -241,6 +257,8 @@ class OverlayWindow(private val context: Context) {
         handler.removeCallbacks(autoCollapseRunnable)
         glowAnimator?.cancel()
         dotAnimator?.cancel()
+        progressBlinkAnimator?.cancel()
+        progressBlinkAnimator = null
         detach()
         pillView = null
         minimizedView = null
@@ -295,6 +313,8 @@ class OverlayWindow(private val context: Context) {
         } catch (e: Exception) {
             Log.w(TAG, "setExpanded add new: $e")
         }
+        // 展开后同步背景进度与闪烁状态
+        if (expanded) updateProgress(currentStep)
     }
 
     /** 读取用户配置的自动收起时长（毫秒）；负值表示永不自动收起。每次展开时重新读取，设置变更下次展开生效。 */
@@ -325,7 +345,7 @@ class OverlayWindow(private val context: Context) {
         _currentState = state
         when (state) {
             is AgentState.Running -> {
-                currentStep = state.step
+                updateProgress(state.step)
                 if (debugMode) pillStep?.text = "step ${state.step} / $maxSteps"
                 // Normal mode: keep the previous step text until the next StepResult arrives
             }
@@ -353,11 +373,13 @@ class OverlayWindow(private val context: Context) {
             }
             else -> {}
         }
+        // 非运行态（等待/暂停/结束）停止闪烁警示
+        if (state !is AgentState.Running) stopProgressBlink()
         applyStateColors()
     }
 
     fun addStepResult(result: StepResult) {
-        currentStep = result.step
+        updateProgress(result.step)
         if (debugMode) {
             pillStep?.text = "step ${result.step} / $maxSteps"
         } else {
@@ -378,6 +400,42 @@ class OverlayWindow(private val context: Context) {
             else -> colorIdle
         }
         (pillDot?.background as? GradientDrawable)?.setColor(color)
+    }
+
+    /** 按当前步数更新胶囊背景中的灰色进度段（clip level 0–10000）。比例 clamp 到 [0,1]，超出最大步数不溢出。 */
+    private fun updateProgress(step: Int) {
+        currentStep = step
+        val max = maxSteps
+        val ratio = if (max > 0) (step.toFloat() / max).coerceIn(0f, 1f) else 0f
+        pillProgressClip?.level = (ratio * 10000).toInt()
+
+        if (_currentState is AgentState.Running && ratio >= PROGRESS_BLINK_THRESHOLD) {
+            startProgressBlink()
+        } else {
+            stopProgressBlink()
+        }
+    }
+
+    /** 进度达到阈值时，已执行灰色段在灰色与胶囊原背景色之间来回切换，模拟闪烁警示。胶囊不可见时不启动。 */
+    private fun startProgressBlink() {
+        if (progressBlinkAnimator != null) return
+        if (pillView?.isAttachedToWindow != true) return
+        progressBlinkAnimator = ValueAnimator.ofArgb(PROGRESS_FILL_COLOR, PROGRESS_BLINK_TO_COLOR).apply {
+            duration = 500
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            addUpdateListener { anim ->
+                (pillProgressClip?.drawable as? GradientDrawable)?.setColor(anim.animatedValue as Int)
+            }
+            start()
+        }
+    }
+
+    private fun stopProgressBlink() {
+        progressBlinkAnimator?.cancel()
+        progressBlinkAnimator = null
+        // 恢复灰色填充
+        (pillProgressClip?.drawable as? GradientDrawable)?.setColor(PROGRESS_FILL_COLOR)
     }
 
     private fun refreshPillText() {
@@ -449,5 +507,11 @@ class OverlayWindow(private val context: Context) {
 
     companion object {
         private const val TAG = "OverlayWindow"
+        /** 已执行步数的灰色填充色，需与 bg_pill_progress.xml 中保持一致 */
+        private val PROGRESS_FILL_COLOR = 0xFFB8B8B8.toInt()
+        /** 胶囊原背景色（surface_island），闪烁时与灰色来回切换 */
+        private val PROGRESS_BLINK_TO_COLOR = 0xF0FFFFFF.toInt()
+        /** 进度达到该比例时开始闪烁警示 */
+        private const val PROGRESS_BLINK_THRESHOLD = 0.9f
     }
 }

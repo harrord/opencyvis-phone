@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 胶囊背景 = 进度条：底层原背景色(白)，灰色段从左端随已执行步数增长，顶层描边保持不变 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 底层：原胶囊背景色(白) -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/surface_island" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+
+    <!-- 中层：已执行步数的灰色填充，水平裁剪，level 由代码按 step/maxSteps 控制 -->
+    <item android:id="@+id/pill_progress_clip">
+        <clip
+            android:clipOrientation="horizontal"
+            android:gravity="start">
+            <shape android:shape="rectangle">
+                <solid android:color="#B8B8B8" />
+                <corners android:radius="24dp" />
+            </shape>
+        </clip>
+    </item>
+
+    <!-- 顶层：描边，与 bg_island 保持一致 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <corners android:radius="24dp" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/surface_overlay_20" />
+        </shape>
+    </item>
+
+</layer-list>
