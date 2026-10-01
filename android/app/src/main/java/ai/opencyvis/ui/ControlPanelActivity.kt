@@ -1,7 +1,12 @@
 package ai.opencyvis.ui
 
 import android.Manifest
+import android.app.Dialog
+import android.text.Editable
+import android.text.TextWatcher
 import android.text.format.DateUtils
+import android.view.Window
+import android.view.WindowManager
 import ai.opencyvis.db.ConversationEntity
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -346,6 +351,9 @@ class ControlPanelActivity : AppCompatActivity() {
                 voiceInputController.start()
             }
         }
+
+        // Full-screen editor — expand input for composing long instructions
+        findViewById<Button>(R.id.btn_fullscreen_input).setOnClickListener { showFullscreenInput() }
 
         findViewById<Button>(R.id.btn_history).setOnClickListener {
             startActivity(Intent(this, ConversationHistoryActivity::class.java))
@@ -1302,5 +1310,52 @@ class ControlPanelActivity : AppCompatActivity() {
             val count = chatAdapter.itemCount
             if (count > 0) chatRecycler.smoothScrollToPosition(count - 1)
         }
+    }
+
+    /** Full-screen editor for composing long instructions. */
+    private fun showFullscreenInput() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_fullscreen_input)
+        dialog.window?.apply {
+            setLayout(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT
+            )
+            setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        }
+
+        val editor = dialog.findViewById<EditText>(R.id.edit_fullscreen_input)
+        val charCount = dialog.findViewById<TextView>(R.id.text_char_count)
+        editor.setText(editInput.text.toString())
+        editor.setSelection(editor.text.length)
+        charCount.text = editor.text.length.toString()
+        editor.addTextChangedListener(object : TextWatcher {
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                charCount.text = (s?.length ?: 0).toString()
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        var sent = false
+        dialog.findViewById<Button>(R.id.btn_fullscreen_close).setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<Button>(R.id.btn_fullscreen_send).setOnClickListener {
+            sent = true
+            editInput.setText(editor.text.toString())
+            dialog.dismiss()
+            // Reuse the main send logic (answer / supplement / start agent)
+            btnSend.performClick()
+        }
+        // Closing without sending keeps the draft in the compact input box
+        dialog.setOnDismissListener {
+            if (!sent) {
+                editInput.setText(editor.text.toString())
+                editInput.setSelection(editInput.text.length)
+            }
+        }
+
+        dialog.show()
+        editor.requestFocus()
     }
 }

@@ -65,6 +65,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setupProviderPreference()
         setupTextSummaries()
         setupMaxStepsPreference()
+        setupOverlayAutoCollapsePreference()
         setupAutoSaveOnChange()
         setupMemoryPreference()
         setupBlacklistPreference()
@@ -344,6 +345,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 pref.text = clamped.toString()
                 false
             }
+    }
+
+    // --- Overlay auto-collapse: ListPreference 自动持久化到 "opencyvis_config"，
+    //     与 ConfigRepository 共用同一份 SharedPreferences，无需手动监听 ---
+
+    private fun setupOverlayAutoCollapsePreference() {
+        val pref = findPreference<ListPreference>("overlay_auto_collapse_seconds") ?: return
+        pref.value = config.overlayAutoCollapseSeconds.toString()
     }
 
     // --- Manage Memory ---

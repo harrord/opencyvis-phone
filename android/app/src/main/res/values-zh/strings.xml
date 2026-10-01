@@ -35,6 +35,7 @@
     <string name="pref_category_ai_model">AI 模型</string>
     <string name="pref_category_remote_control">远程控制</string>
     <string name="pref_category_security">安全</string>
+    <string name="pref_category_overlay">悬浮窗</string>
     <string name="pref_category_developer">开发者</string>
     <string name="pref_category_about">关于</string>
     <string name="pref_app_blacklist">应用黑名单</string>
@@ -48,6 +49,17 @@
     <string name="pref_base_url_title">Base URL</string>
     <string name="pref_max_steps_title">最大步数</string>
     <string name="pref_max_steps_summary">Agent 最大执行步数</string>
+    <string name="pref_overlay_auto_collapse_title">自动收起时长</string>
+    <string-array name="overlay_auto_collapse_entries">
+        <item>5 秒</item>
+        <item>10 秒</item>
+        <item>30 秒</item>
+        <item>1 分钟</item>
+        <item>2 分钟</item>
+        <item>5 分钟</item>
+        <item>10 分钟</item>
+        <item>永不收起</item>
+    </string-array>
     <string name="pref_im_enabled_title">启用远程 IM</string>
     <string name="pref_im_enabled_summary">通过即时通讯应用控制 Agent</string>
     <string name="pref_im_step_screenshots_title">步骤截图</string>

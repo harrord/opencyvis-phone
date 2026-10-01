@@ -14,6 +14,7 @@ class ConfigRepository(context: Context) {
         private const val KEY_API_PROVIDER = "api_provider"
         private const val KEY_DEBUG_MODE = "debug_mode"
         private const val KEY_SHOW_DEBUG_ROUTINES = "show_debug_routines"
+        private const val KEY_OVERLAY_AUTO_COLLAPSE_SECONDS = "overlay_auto_collapse_seconds"
         private const val KEY_ACTIVE_PROFILE = "active_profile"
         private const val KEY_IM_REMOTE_ENABLED = "im_remote_enabled"
         private const val KEY_IM_SEND_STEP_SCREENSHOTS = "im_send_step_screenshots"
@@ -39,6 +40,8 @@ class ConfigRepository(context: Context) {
         const val DEFAULT_KIMI_MODEL = "kimi-k2.6"
         const val DEFAULT_KIMI_BASE_URL = "https://api.moonshot.cn/v1"
         const val DEFAULT_MAX_STEPS = 100
+        /** 悬浮窗胶囊自动收起时长（秒），-1 表示永不自动收起 */
+        const val DEFAULT_OVERLAY_AUTO_COLLAPSE_SECONDS = 10L
 
         /** Returns true if model or url matches any known provider default.
          *  SettingsActivity uses this to decide whether to auto-fill defaults when
@@ -102,6 +105,18 @@ class ConfigRepository(context: Context) {
     var debugMode: Boolean
         get() = prefs.getBoolean(KEY_DEBUG_MODE, false)
         set(value) = prefs.edit().putBoolean(KEY_DEBUG_MODE, value).apply()
+
+    /** 悬浮窗胶囊自动收起时长（秒）。由设置页 ListPreference 以 String 写入，这里按 Long 读取；-1 表示永不收起。 */
+    var overlayAutoCollapseSeconds: Long
+        get() {
+            return try {
+                prefs.getString(KEY_OVERLAY_AUTO_COLLAPSE_SECONDS, null)?.toLongOrNull()
+                    ?: DEFAULT_OVERLAY_AUTO_COLLAPSE_SECONDS
+            } catch (_: ClassCastException) {
+                DEFAULT_OVERLAY_AUTO_COLLAPSE_SECONDS
+            }
+        }
+        set(value) = prefs.edit().putString(KEY_OVERLAY_AUTO_COLLAPSE_SECONDS, value.toString()).apply()
 
     var showDebugRoutines: Boolean
         get() = prefs.getBoolean(KEY_SHOW_DEBUG_ROUTINES, false)

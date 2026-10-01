@@ -269,7 +269,7 @@
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="10dp"
+                android:layout_marginEnd="8dp"
                 android:hint="Ask me anything..."
                 android:inputType="text"
                 android:background="@drawable/bg_input_field"
@@ -279,6 +279,19 @@
                 android:textColorHint="@color/on_surface_hint"
                 android:maxLines="1"
                 android:fontFamily="sans-serif" />
+
+            <Button
+                android:id="@+id/btn_fullscreen_input"
+                style="@style/OpenCyvis.Button.Custom"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="8dp"
+                android:text="⛶"
+                android:textSize="16sp"
+                android:textColor="@color/on_surface_medium"
+                android:background="@drawable/bg_action_btn"
+                android:padding="0dp"
+                android:stateListAnimator="@null" />
 
             <Button
                 android:id="@+id/btn_voice_input"

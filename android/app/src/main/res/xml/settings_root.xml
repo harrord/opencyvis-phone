@@ -166,6 +166,19 @@
 
     </PreferenceCategory>
 
+    <!-- Overlay -->
+    <PreferenceCategory app:title="@string/pref_category_overlay">
+
+        <ListPreference
+            android:key="overlay_auto_collapse_seconds"
+            android:title="@string/pref_overlay_auto_collapse_title"
+            android:summary="%s"
+            android:entries="@array/overlay_auto_collapse_entries"
+            android:entryValues="@array/overlay_auto_collapse_values"
+            android:defaultValue="10" />
+
+    </PreferenceCategory>
+
     <!-- Developer -->
     <PreferenceCategory app:title="@string/pref_category_developer">
 

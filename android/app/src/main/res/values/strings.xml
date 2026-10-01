@@ -35,6 +35,26 @@
         <item>ollama</item>
         <item>kimi</item>
     </string-array>
+    <string-array name="overlay_auto_collapse_entries">
+        <item>5 seconds</item>
+        <item>10 seconds</item>
+        <item>30 seconds</item>
+        <item>1 minute</item>
+        <item>2 minutes</item>
+        <item>5 minutes</item>
+        <item>10 minutes</item>
+        <item>Never</item>
+    </string-array>
+    <string-array name="overlay_auto_collapse_values">
+        <item>5</item>
+        <item>10</item>
+        <item>30</item>
+        <item>60</item>
+        <item>120</item>
+        <item>300</item>
+        <item>600</item>
+        <item>-1</item>
+    </string-array>
 
     <!-- Control panel -->
     <string name="btn_memory_label">Mem</string>
@@ -58,6 +78,7 @@
     <string name="pref_category_ai_model">AI Model</string>
     <string name="pref_category_remote_control">Remote Control</string>
     <string name="pref_category_security">Security</string>
+    <string name="pref_category_overlay">Overlay</string>
     <string name="pref_category_developer">Developer</string>
     <string name="pref_category_about">About</string>
     <string name="pref_app_blacklist">App Blacklist</string>
@@ -71,6 +92,7 @@
     <string name="pref_base_url_title">Base URL</string>
     <string name="pref_max_steps_title">Max Steps</string>
     <string name="pref_max_steps_summary">Maximum agent steps</string>
+    <string name="pref_overlay_auto_collapse_title">Auto-collapse delay</string>
     <string name="pref_share_config_qr">Share Config QR</string>
     <string name="pref_share_config_qr_summary">Generate QR code to share LLM settings</string>
     <string name="pref_scan_config_qr">Scan Config QR</string>

@@ -43,7 +43,8 @@ class OverlayWindow(private val context: Context) {
     }
 
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-    private val debugMode = ConfigRepository(context).debugMode
+    private val config = ConfigRepository(context)
+    private val debugMode = config.debugMode
 
     // Island (expanded) view — Dynamic Island style
     private var pillView: View? = null
@@ -78,7 +79,6 @@ class OverlayWindow(private val context: Context) {
     private var dotAnimator: ObjectAnimator? = null
     private val handler = Handler(Looper.getMainLooper())
     private val autoCollapseRunnable = Runnable { setExpanded(false) }
-    private val autoCollapseDuration = 5000L
 
     internal var attachCount: Int = 0
         private set
@@ -242,7 +242,8 @@ class OverlayWindow(private val context: Context) {
         handler.removeCallbacks(autoCollapseRunnable)
         if (expanded && _currentState !is AgentState.WaitingForUser
             && _currentState !is AgentState.WaitingForHandoff) {
-            handler.postDelayed(autoCollapseRunnable, autoCollapseDuration)
+            val collapseMs = autoCollapseMs()
+            if (collapseMs > 0) handler.postDelayed(autoCollapseRunnable, collapseMs)
         }
         if (!isAttached) return
 
@@ -282,6 +283,12 @@ class OverlayWindow(private val context: Context) {
         } catch (e: Exception) {
             Log.w(TAG, "setExpanded add new: $e")
         }
+    }
+
+    /** 读取用户配置的自动收起时长（毫秒）；负值表示永不自动收起。每次展开时重新读取，设置变更下次展开生效。 */
+    private fun autoCollapseMs(): Long {
+        val seconds = config.overlayAutoCollapseSeconds
+        return if (seconds > 0) seconds * 1000L else -1L
     }
 
     fun isAttachedForTest(): Boolean = isAttached
