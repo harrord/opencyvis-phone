@@ -613,7 +613,22 @@ class AgentEngine(
 
                 // === ACT ===
                 val t3 = System.currentTimeMillis()
-                val action = Action.fromMap(resultData)
+                val action = try {
+                    Action.fromMap(resultData)
+                } catch (e: IllegalArgumentException) {
+                    // Malformed action (e.g. tap without numeric x/y) — feed back to the LLM and retry instead of crashing the run
+                    val totalMs = System.currentTimeMillis() - stepStartTime
+                    val detail = e.message ?: "Malformed action"
+                    Log.w(TAG, "Step $step action parse error: $detail. resultData=$resultData")
+                    pendingActionFeedback = String.format(
+                        LlmPrompts.agentFeedback("malformed_action"), detail
+                    )
+                    _stepResults.emit(
+                        StepResult(step, actionType, thought, false, detail, totalMs, false, debugInfo)
+                    )
+                    delay(300)
+                    continue
+                }
                 _state.value = AgentState.Running(step, "Executing: $actionType")
 
                 when (val repeatDecision = actionRepeatGuard.evaluate(action, screenFingerprint)) {

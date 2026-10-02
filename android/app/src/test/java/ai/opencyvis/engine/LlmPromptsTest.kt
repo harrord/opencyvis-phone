@@ -49,7 +49,7 @@ class LlmPromptsTest {
     fun `agentFeedback returns value for all known keys`() {
         val keys = listOf(
             "vd_blank_hint", "handoff_default_reason", "handoff_completed",
-            "action_failed", "completed_side_effect", "max_steps_reached",
+            "action_failed", "malformed_action", "completed_side_effect", "max_steps_reached",
             "user_answer_prefix", "system_feedback_prefix",
             "ui_elements_header", "user_supplement_header",
             "global_memory_header", "notes_header"
@@ -124,6 +124,9 @@ class LlmPromptsTest {
 
         val actionFailed = LlmPrompts.agentFeedback("action_failed")
         assertTrue("action_failed should have %s placeholder", actionFailed.contains("%s"))
+
+        val malformed = LlmPrompts.agentFeedback("malformed_action")
+        assertTrue("malformed_action should have %s placeholder", malformed.contains("%s"))
 
         val maxSteps = LlmPrompts.agentFeedback("max_steps_reached")
         assertTrue("max_steps_reached should have %d placeholder", maxSteps.contains("%d"))
