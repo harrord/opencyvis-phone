@@ -48,6 +48,7 @@ class AgentEngine(
         scheduleType: String?, scheduleTime: String?, scheduleRepeat: String?,
         scheduleInterval: Int?, scheduleLocation: String?, scheduleOnEnter: Boolean?
     ) -> Unit)? = null,
+    private val onNotify: ((title: String, text: String) -> Unit)? = null,
 ) {
 
     companion object {
@@ -518,6 +519,24 @@ class AgentEngine(
                     }
 
                     pendingActionFeedback = String.format(LlmPrompts.agentFeedback("handoff_completed"), handoffSource)
+                    continue
+                }
+
+                // Handle notify: post a system notification, then continue the task
+                if (actionType == "notify") {
+                    val title = resultData["notification_title"] as? String ?: ""
+                    val text = resultData["notification_text"] as? String ?: thought
+                    onNotify?.invoke(title, text.ifBlank { title })
+                    val totalMsNotify = System.currentTimeMillis() - stepStartTime
+                    Log.i(TAG, "Step $step: notification posted: ${title.ifBlank { text }}")
+                    _stepResults.emit(
+                        StepResult(
+                            step, "notify", thought, true,
+                            "Notification posted: ${title.ifBlank { text.ifBlank { thought } }}",
+                            totalMsNotify, false, debugInfo
+                        )
+                    )
+                    delay(200)
                     continue
                 }
 

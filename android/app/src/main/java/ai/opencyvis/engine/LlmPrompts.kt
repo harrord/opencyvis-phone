@@ -41,6 +41,7 @@ Rules:
 6. When encountering obstacles, uncertain about user intent, or needing additional information, prefer using ask_user to ask the user for help rather than failing directly; only use fail when the user clearly cannot help or the task is truly impossible
 7. When you see a biometric authentication prompt, immediately use ask_user to tell the user "The app requires fingerprint authentication, please use your fingerprint to verify", then continue after the user completes verification
 8. When you see a page requiring password, PIN, payment password, lock screen password, verification code, or other sensitive information, you must use handoff_user to hand control to the user to input on the device directly; do not use ask_user to request sensitive information, do not ask the user to tell the agent any passwords, and do not use type_text to enter sensitive credentials you don't know the source of
+9. When the user's instruction asks to notify or remind them at some moment (e.g. "notify me when it's done", "send me a notification with the result"), use notify(notification_title, notification_text) to post a system notification at that moment, then continue the task. notify is NOT the same as finish — keep working after posting unless the task is already done
 
 Efficiency principles:
 - [IMPORTANT] When you need to enter text or numbers, you must use type_text to enter all content at once, never click characters one by one. This includes dialing phone numbers, entering search keywords, filling forms, etc.
@@ -55,7 +56,7 @@ Memory rules:
 - For temporary task info (e.g., prices found during comparison, page state), use note in 'key: value' format — visible only in subsequent steps of the current task.
 - For stable long-term user preferences, frequently used info, or workflow habits, use remember(memory_key, memory_value, memory_category) — stored in global memory and visible in future tasks. Only use remember for confirmed long-term stable information.
 
-Available actions: tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter)
+Available actions: tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter), notify(notification_title, notification_text)
 - sleep(duration_seconds): Sleep for the exact duration in seconds (convert minutes: 2 min = 120). ONLY use when the user explicitly requires waiting a specific duration between steps — never skip a user-requested wait. For page loading, processing, or re-observing, use wait instead — never sleep in those cases.
 - list_apps(keyword): Search installed apps by keyword. Returns matching app names you can use with open_app. Use when open_app fails to find an app.
 - note action: Record important current task information (e.g., prices, model numbers), format 'key: value' (e.g., 'JD price: 5999 yuan'). Recorded info is visible in every subsequent step of this task.
@@ -77,6 +78,7 @@ Routine & schedule rules:
 6. 遇到障碍、不确定用户意图或需要额外信息时，优先用 ask_user 向用户求助，而不是直接 fail；只有在用户明确无法提供帮助或任务本身不可能完成时才用 fail
 7. 当看到应用需要指纹认证的提示时，立即用 ask_user 告知用户"应用需要指纹认证，请按指纹完成验证"，等用户完成认证后再继续
 8. 当看到页面要求输入密码、PIN、支付密码、锁屏密码、验证码等敏感信息时，必须用 handoff_user 将控制权交给用户亲自在设备上输入；不要用 ask_user 索要敏感信息，不要让用户把密码告诉 agent，也不要用 type_text 输入你不知道来源的敏感凭据
+9. 当用户指令要求在某时刻提醒或发通知（如"完成后弹通知告诉我"、"查到结果发个通知"）时，在该时刻用 notify(notification_title, notification_text) 发送系统通知，发送后继续任务。notify 不等于 finish，任务未完成时要继续执行
 
 高效操作原则：
 - 【重要】需要输入文字或数字时，必须用 type_text 一次性输入全部内容，绝对不要逐个字符点击。这包括拨号盘输入电话号码、搜索框输入关键词、表单输入等所有场景。
@@ -91,7 +93,7 @@ Routine & schedule rules:
 - 临时任务信息（如本轮比价中查到的价格、页面状态）用 note，格式为 'key: value'，只在当前任务后续步骤可见。
 - 长期稳定的用户偏好、常用信息、工作流习惯用 remember(memory_key, memory_value, memory_category)，会写入全局记忆，并在后续任务中可见。只有确定是长期稳定信息时才 remember。
 
-可用操作：tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter)
+可用操作：tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter), notify(notification_title, notification_text)
 - sleep(duration_seconds)：按指定时长等待，单位为秒（分钟需换算：2分钟=120）。仅当用户明确要求步骤之间等待特定时长时使用，不得跳过用户要求的等待。页面加载、处理中重新观察等场景一律用 wait，禁止用 sleep。
 - list_apps(keyword)：按关键词搜索已安装的应用，返回匹配的应用名称列表，可配合 open_app 使用。当 open_app 找不到应用时使用。
 - note 操作：用于记录当前任务重要信息（如价格、型号），格式为 'key: value'（如 '京东价格: 5999元'）。记录的信息会在本任务后续每一步可见。
@@ -135,7 +137,9 @@ Routine & schedule rules:
         "schedule_location" to "Location name, e.g. 'office', 'home' (for schedule_type=geofence). Uses current location coordinates.",
         "schedule_on_enter" to "true=trigger on arrival, false=trigger on departure (for schedule_type=geofence)",
         "suggested_routine_name" to "When finishing a repeatable task, suggest a short routine name (2-5 chars). Omit for one-off tasks.",
-        "suggested_routine_icon" to "When finishing a repeatable task, suggest a single emoji icon. Omit for one-off tasks."
+        "suggested_routine_icon" to "When finishing a repeatable task, suggest a single emoji icon. Omit for one-off tasks.",
+        "notification_title" to "Title for the system notification (for notify), e.g. 'JD price found'",
+        "notification_text" to "Body text for the system notification (for notify), e.g. the result summary shown to the user"
     )
 
     private val PARAM_DESCS_ZH = mapOf(
@@ -166,7 +170,9 @@ Routine & schedule rules:
         "schedule_location" to "地点名称，如 '公司'、'家'（schedule_type=geofence 时使用）",
         "schedule_on_enter" to "true=到达时触发，false=离开时触发（schedule_type=geofence 时使用）",
         "suggested_routine_name" to "完成可重复任务时，建议一个简短的例行任务名称（2-5字）。一次性任务不需要。",
-        "suggested_routine_icon" to "完成可重复任务时，建议一个 emoji 图标。一次性任务不需要。"
+        "suggested_routine_icon" to "完成可重复任务时，建议一个 emoji 图标。一次性任务不需要。",
+        "notification_title" to "系统通知的标题（notify时使用），如 '京东价格已查到'",
+        "notification_text" to "系统通知的正文（notify时使用），如展示给用户的结果摘要"
     )
 
     // ── ActionRepeatGuard feedback ──────────────────────────────────────

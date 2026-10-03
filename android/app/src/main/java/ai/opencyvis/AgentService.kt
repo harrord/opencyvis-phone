@@ -69,9 +69,11 @@ class AgentService : Service() {
         private const val TAG = "AgentService"
         private const val CHANNEL_ID = "opencyvis_agent"
         private const val CHANNEL_ASK = "opencyvis_ask_user"
+        private const val CHANNEL_NOTIFY = "opencyvis_notify"
         private const val NOTIFICATION_ID = 1001
         private const val NOTIFICATION_ASK_ID = 1002
         private const val NOTIFICATION_COMPLETED_ID = 1003
+        private const val NOTIFICATION_NOTIFY_ID = 1004
         private const val HANDOFF_TIMEOUT_MS = 30_000L
         private const val HANDOFF_COUNTDOWN_SECONDS = 10
         private const val HANDOFF_SAMPLE_INTERVAL_MS = 1_000L
@@ -484,6 +486,9 @@ class AgentService : Service() {
                         }
                         Log.i(TAG, "Saved routine '$name' (id=$id, schedule=$schedType)")
                     }
+                },
+                onNotify = { title, text ->
+                    postNotifyNotification(title, text)
                 }
             )
             engine = newEngine
@@ -705,6 +710,29 @@ class AgentService : Service() {
 
     private fun cancelCompletionNotification() {
         getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_COMPLETED_ID)
+    }
+
+    private fun postNotifyNotification(title: String, text: String) {
+        val cls = OverlayService.lastForegroundActivityClass
+            ?: ai.opencyvis.ui.ControlPanelActivity::class.java
+        val intent = Intent(this, cls).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        }
+        val pi = PendingIntent.getActivity(
+            this, 3, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notif = Notification.Builder(this, CHANNEL_NOTIFY)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(Notification.BigTextStyle().bigText(text))
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .setPriority(Notification.PRIORITY_HIGH)
+            .build()
+        getSystemService(NotificationManager::class.java)
+            .notify(NOTIFICATION_NOTIFY_ID, notif)
     }
 
     private fun observeHandoffRequests() {
@@ -1348,6 +1376,16 @@ class AgentService : Service() {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = getString(R.string.notif_channel_ask_desc)
+                enableVibration(true)
+            }
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_NOTIFY,
+                getString(R.string.notif_channel_notify),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = getString(R.string.notif_channel_notify_desc)
                 enableVibration(true)
             }
         )

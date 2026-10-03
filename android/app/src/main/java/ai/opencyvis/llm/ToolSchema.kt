@@ -37,6 +37,7 @@ object ToolSchema {
                             put("note")
                             put("remember")
                             put("save_routine")
+                            put("notify")
                         })
                         put("description", LlmPrompts.paramDescription("action_type"))
                     })
@@ -156,6 +157,14 @@ object ToolSchema {
                     put("suggested_routine_icon", JSONObject().apply {
                         put("type", "string")
                         put("description", LlmPrompts.paramDescription("suggested_routine_icon"))
+                    })
+                    put("notification_title", JSONObject().apply {
+                        put("type", "string")
+                        put("description", LlmPrompts.paramDescription("notification_title"))
+                    })
+                    put("notification_text", JSONObject().apply {
+                        put("type", "string")
+                        put("description", LlmPrompts.paramDescription("notification_text"))
                     })
                 })
                 put("required", JSONArray().apply {

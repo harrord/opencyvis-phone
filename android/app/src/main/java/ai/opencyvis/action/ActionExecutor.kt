@@ -158,6 +158,11 @@ class ActionExecutor(
                 is Action.SaveRoutine -> {
                     true to "Routine saved: ${action.routineName}"
                 }
+
+                is Action.Notify -> {
+                    // Intercepted by AgentEngine before reaching here
+                    true to "Notification posted: ${action.title}"
+                }
             }
         } catch (e: Exception) {
             false to "Error: ${e.message}"

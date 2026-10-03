@@ -322,7 +322,7 @@ class ToolSchemaTest {
         val expectedActions = setOf(
             "tap", "long_press", "open_app", "swipe", "key_event", "type_text",
             "wait", "sleep", "finish", "fail", "ask_user", "handoff_user", "note",
-            "remember", "save_routine"
+            "remember", "save_routine", "notify"
         )
 
         val enumArray = actualProperties()

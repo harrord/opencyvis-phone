@@ -208,6 +208,8 @@
     <string name="notif_open_app">Open OpenCyvis</string>
     <string name="notif_channel_ask">OpenCyvis Questions</string>
     <string name="notif_channel_ask_desc">High-priority alerts when the agent is waiting for your answer</string>
+    <string name="notif_channel_notify">OpenCyvis Notifications</string>
+    <string name="notif_channel_notify_desc">System notifications posted by the agent on request</string>
     <string name="notif_max_steps_reached">Max steps reached (%1$d)</string>
 
     <!-- IM Pairing -->

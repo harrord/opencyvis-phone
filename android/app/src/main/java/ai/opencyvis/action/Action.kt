@@ -98,6 +98,12 @@ sealed class Action(val typeName: String, open val thought: String) {
         override val thought: String = ""
     ) : Action("save_routine", thought)
 
+    data class Notify(
+        val title: String,
+        val text: String,
+        override val thought: String = ""
+    ) : Action("notify", thought)
+
     companion object {
         /**
          * Parse an Action from the LLM tool call result map.
@@ -198,6 +204,11 @@ sealed class Action(val typeName: String, open val thought: String) {
                     scheduleInterval = (map["schedule_interval"] as? Number)?.toInt(),
                     scheduleLocation = map["schedule_location"] as? String,
                     scheduleOnEnter = map["schedule_on_enter"] as? Boolean,
+                    thought = thought
+                )
+                "notify" -> Notify(
+                    title = (map["notification_title"] as? String) ?: "",
+                    text = (map["notification_text"] as? String) ?: thought,
                     thought = thought
                 )
                 else -> Fail(reason = "Unknown action type: $actionType", thought = thought)

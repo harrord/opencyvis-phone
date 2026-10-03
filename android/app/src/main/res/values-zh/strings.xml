@@ -158,6 +158,8 @@
     <string name="notif_open_app">打开 OpenCyvis</string>
     <string name="notif_channel_ask">OpenCyvis 提问</string>
     <string name="notif_channel_ask_desc">Agent 等待用户回答时的高优先级提醒</string>
+    <string name="notif_channel_notify">OpenCyvis 通知</string>
+    <string name="notif_channel_notify_desc">Agent 按用户要求发送的系统通知</string>
     <string name="notif_max_steps_reached">已达到最大步数限制 (%1$d)</string>
 
     <!-- IM pairing & replies -->
