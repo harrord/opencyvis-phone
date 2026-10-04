@@ -46,38 +46,27 @@ class InputInjector(
         private const val TAG = "InputInjector"
 
         // InputManager.INJECT_INPUT_EVENT_MODE_ASYNC = 0
-        private const val INJECT_MODE_ASYNC = 0
+        const val INJECT_MODE_ASYNC = 0
         // InputManager.INJECT_INPUT_EVENT_MODE_WAIT_FOR_FINISH = 2
-        private const val INJECT_MODE_WAIT_FOR_FINISH = 2
+        const val INJECT_MODE_WAIT_FOR_FINISH = 2
 
         /**
-         * Inject a MotionEvent to a specific display.
+         * Inject a MotionEvent to a specific display via the privilege backend.
          * Used by ViewActivity for TAKEOVER touch forwarding.
          * Coordinates are 1:1 since VD matches physical display resolution.
+         *
+         * Motion streams use ASYNC mode so each event isn't synchronously waited on
+         * (otherwise dragging the SurfaceView would stutter on the main thread).
          */
-        fun injectToDisplay(context: Context, event: MotionEvent, targetDisplayId: Int): Boolean {
+        fun injectToDisplay(
+            backend: PrivilegeBackend,
+            event: MotionEvent,
+            targetDisplayId: Int,
+            mode: Int = INJECT_MODE_ASYNC
+        ): Boolean {
             return try {
-                // Get InputManager instance
-                val im = context.getSystemService(Context.INPUT_SERVICE)
-                    ?: Class.forName("android.hardware.input.InputManager")
-                        .getMethod("getInstance").invoke(null)
-                    ?: return false
-
-                // Set displayId on the event
-                try {
-                    event.javaClass.getMethod("setDisplayId", Int::class.javaPrimitiveType)
-                        .invoke(event, targetDisplayId)
-                } catch (_: Exception) {}
-
                 event.source = InputDevice.SOURCE_TOUCHSCREEN
-
-                // Inject
-                val method = im.javaClass.getMethod(
-                    "injectInputEvent",
-                    InputEvent::class.java,
-                    Int::class.javaPrimitiveType
-                )
-                method.invoke(im, event, INJECT_MODE_WAIT_FOR_FINISH) as? Boolean ?: false
+                backend.injectInputEvent(event, targetDisplayId, mode)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to inject event to display $targetDisplayId", e)
                 false
@@ -85,29 +74,12 @@ class InputInjector(
         }
 
         /**
-         * Inject a KeyEvent to a specific display.
+         * Inject a KeyEvent to a specific display via the privilege backend.
          * Used by ViewActivity in TAKEOVER mode to forward keyboard input to VD.
          */
-        fun injectKeyToDisplay(context: Context, event: KeyEvent, targetDisplayId: Int): Boolean {
+        fun injectKeyToDisplay(backend: PrivilegeBackend, event: KeyEvent, targetDisplayId: Int): Boolean {
             return try {
-                val im = context.getSystemService(Context.INPUT_SERVICE)
-                    ?: Class.forName("android.hardware.input.InputManager")
-                        .getMethod("getInstance").invoke(null)
-                    ?: return false
-
-                // Clone the event and set displayId
-                val clone = KeyEvent(event)
-                try {
-                    clone.javaClass.getMethod("setDisplayId", Int::class.javaPrimitiveType)
-                        .invoke(clone, targetDisplayId)
-                } catch (_: Exception) {}
-
-                val method = im.javaClass.getMethod(
-                    "injectInputEvent",
-                    InputEvent::class.java,
-                    Int::class.javaPrimitiveType
-                )
-                method.invoke(im, clone, INJECT_MODE_WAIT_FOR_FINISH) as? Boolean ?: false
+                backend.injectInputEvent(KeyEvent(event), targetDisplayId, INJECT_MODE_WAIT_FOR_FINISH)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to inject key event to display $targetDisplayId", e)
                 false

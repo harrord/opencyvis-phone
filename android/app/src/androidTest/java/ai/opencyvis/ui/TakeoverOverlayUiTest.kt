@@ -61,17 +61,23 @@ class TakeoverOverlayUiTest {
     }
 
     @Test
-    fun takeoverTapShowsKeyboardProxyAndForwardsTyping() {
+    fun takeoverKeyboardButtonShowsKeyboardProxy() {
         startDebugTakeover()
 
-        device.click(device.displayWidth / 2, device.displayHeight / 2)
+        // Expand the panel and tap the explicit keyboard button — taps on the
+        // VD surface must NOT summon the IME anymore.
+        val fab = device.wait(Until.findObject(By.res(PACKAGE, "fab")), TIMEOUT_MS)
+        assertNotNull("FAB should be available", fab)
+        fab.click()
+
+        val keyboard = device.wait(Until.findObject(By.res(PACKAGE, "btn_keyboard")), TIMEOUT_MS)
+        assertNotNull("Keyboard button should be available in takeover mode", keyboard)
+        keyboard.click()
 
         assertTrue(
-            "Takeover tap should request the local IME through keyboard proxy",
+            "Keyboard button should request the local IME through keyboard proxy",
             waitForLog("Takeover keyboard proxy requested IME", TIMEOUT_MS)
         )
-
-        assertTrue("ViewActivity should remain in takeover mode", waitForLog("Takeover mode: true", TIMEOUT_MS))
     }
 
     @Test

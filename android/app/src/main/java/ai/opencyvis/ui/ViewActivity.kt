@@ -36,6 +36,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import ai.opencyvis.AgentService
 import ai.opencyvis.R
+import ai.opencyvis.backend.PrivilegeBackend
 import ai.opencyvis.engine.AgentState
 import ai.opencyvis.engine.HandoffUiState
 import ai.opencyvis.input.InputInjector
@@ -90,6 +91,7 @@ class ViewActivity : AppCompatActivity() {
     private lateinit var btnSendSupplement: Button
     private lateinit var btnVoiceAnswer: Button
     private lateinit var btnTakeover: Button
+    private lateinit var btnKeyboard: Button
     private lateinit var statusBanner: TextView
     private lateinit var handoffPanel: LinearLayout
     private lateinit var handoffReason: TextView
@@ -105,8 +107,6 @@ class ViewActivity : AppCompatActivity() {
     private lateinit var voiceAnswerController: VoiceInputController
     private var voiceTestReceiverRegistered = false
     private var proxyTextMutation = false
-    private var takeoverTouchDownX = 0f
-    private var takeoverTouchDownY = 0f
     private var pendingShowControls = false
     private var currentAskQuestion: String? = null
 
@@ -178,6 +178,7 @@ class ViewActivity : AppCompatActivity() {
         btnSendSupplement = findViewById(R.id.btn_send_supplement)
         btnVoiceAnswer = findViewById(R.id.btn_voice_answer)
         btnTakeover = findViewById(R.id.btn_takeover)
+        btnKeyboard = findViewById(R.id.btn_keyboard)
         statusBanner = findViewById(R.id.status_banner)
         handoffPanel = findViewById(R.id.handoff_panel)
         handoffReason = findViewById(R.id.handoff_reason)
@@ -266,7 +267,6 @@ class ViewActivity : AppCompatActivity() {
         surfaceView.setOnTouchListener { _, event ->
             if (isTakeoverMode) {
                 forwardTouchToVD(event)
-                handleTakeoverTouchForKeyboard(event)
             }
             true
         }
@@ -287,6 +287,14 @@ class ViewActivity : AppCompatActivity() {
 
         btnTakeover.setOnClickListener {
             toggleTakeover()
+        }
+
+        // Explicit keyboard button: summon the IME for typing into the VD
+        // (touches on the VD no longer trigger the keyboard automatically)
+        btnKeyboard.setOnClickListener {
+            if (!isTakeoverMode) return@setOnClickListener
+            collapsePanel()
+            showTakeoverKeyboard()
         }
 
         findViewById<Button>(R.id.btn_stop).setOnClickListener {
@@ -728,7 +736,9 @@ class ViewActivity : AppCompatActivity() {
             val vdm = agentService?.getVirtualDisplayManager() ?: return super.dispatchKeyEvent(event)
             val displayId = vdm.displayId
             if (displayId != -1) {
-                val result = InputInjector.injectKeyToDisplay(this, event, displayId)
+                val backend = agentService?.getPrivilegeBackend()
+                    ?: return super.dispatchKeyEvent(event)
+                val result = InputInjector.injectKeyToDisplay(backend, event, displayId)
                 if (result) return true
             }
         }
@@ -800,6 +810,7 @@ class ViewActivity : AppCompatActivity() {
 
     private fun setTakeoverMode(takeover: Boolean) {
         isTakeoverMode = takeover
+        btnKeyboard.visibility = if (takeover) View.VISIBLE else View.GONE
         if (takeover) {
             touchInterceptor.visibility = View.GONE
             glowBorder.stopGlow()
@@ -826,9 +837,10 @@ class ViewActivity : AppCompatActivity() {
         val vdm = agentService?.getVirtualDisplayManager() ?: return
         val displayId = vdm.displayId
         if (displayId == -1) return
+        val backend = agentService?.getPrivilegeBackend() ?: return
 
         val injected = MotionEvent.obtain(event)
-        val result = InputInjector.injectToDisplay(this, injected, displayId)
+        val result = InputInjector.injectToDisplay(backend, injected, displayId)
         Log.d(TAG, "Injected touch to display $displayId: result=$result action=${event.action} x=${event.x} y=${event.y}")
         injected.recycle()
     }
@@ -843,16 +855,17 @@ class ViewActivity : AppCompatActivity() {
                 val inserted = s?.subSequence(start, start + count)?.toString().orEmpty()
                 val displayId = agentService?.getVirtualDisplayManager()?.displayId ?: return
                 if (displayId == -1) return
+                val backend = agentService?.getPrivilegeBackend() ?: return
 
                 if (before > count) {
                     repeat(before - count) {
                         InputInjector.injectKeyToDisplay(
-                            this@ViewActivity,
+                            backend,
                             KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL),
                             displayId
                         )
                         InputInjector.injectKeyToDisplay(
-                            this@ViewActivity,
+                            backend,
                             KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL),
                             displayId
                         )
@@ -861,7 +874,7 @@ class ViewActivity : AppCompatActivity() {
                 if (inserted.isNotEmpty()) {
                     Log.i(TAG, "Takeover keyboard proxy forwarding text: ${inserted.length} chars")
                     lifecycleScope.launch {
-                        InputInjector(this@ViewActivity, displayId).typeText(inserted)
+                        InputInjector(this@ViewActivity, displayId, backend = backend).typeText(inserted)
                     }
                 }
             }
@@ -875,24 +888,9 @@ class ViewActivity : AppCompatActivity() {
         })
     }
 
-    private fun handleTakeoverTouchForKeyboard(event: MotionEvent) {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                takeoverTouchDownX = event.x
-                takeoverTouchDownY = event.y
-            }
-            MotionEvent.ACTION_UP -> {
-                val dx = event.x - takeoverTouchDownX
-                val dy = event.y - takeoverTouchDownY
-                if (dx * dx + dy * dy < (12.dpToPx() * 12.dpToPx())) {
-                    showTakeoverKeyboard()
-                }
-            }
-        }
-    }
-
+    /** Show the physical IME through the invisible proxy EditText for typing into the VD. */
     private fun showTakeoverKeyboard() {
-        if (!isTakeoverMode || isPanelExpanded || isResultPanelVisible) return
+        if (!isTakeoverMode || isResultPanelVisible) return
         takeoverKeyboardProxy.requestFocus()
         val imm = getSystemService(InputMethodManager::class.java)
         imm.showSoftInput(takeoverKeyboardProxy, InputMethodManager.SHOW_IMPLICIT)

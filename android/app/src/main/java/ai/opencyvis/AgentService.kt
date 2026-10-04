@@ -121,6 +121,9 @@ class AgentService : Service() {
     val activeBackendName: String?
         get() = backend?.capabilities?.name
 
+    /** The active privilege backend (used for input injection), or null if not connected. */
+    fun getPrivilegeBackend(): PrivilegeBackend? = backend
+
     /** Disconnect the privilege backend. The user can reconnect later from the setup flow. */
     fun revokeBackend() {
         backend?.destroy()
