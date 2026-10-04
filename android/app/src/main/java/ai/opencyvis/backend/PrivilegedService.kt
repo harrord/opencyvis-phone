@@ -8,6 +8,7 @@ import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.ImageReader
 import android.os.Binder
+import android.os.Bundle
 import android.os.Parcel
 import android.os.SharedMemory
 import android.system.OsConstants
@@ -547,6 +548,27 @@ class PrivilegedService : IPrivilegedService.Stub() {
         } catch (e: Exception) {
             Log.w(TAG, "forceStopPackage failed: ${e.message}")
         }
+    }
+
+    // ── File reading (runs at shell/system uid, exempt from Scoped Storage) ──
+    // Never logs file content — only the error message (which contains the path, not text).
+
+    override fun readTextFile(absolutePath: String, maxBytes: Int): Bundle {
+        checkCaller()
+        val out = Bundle()
+        try {
+            val result = FileTextReader.read(absolutePath, maxBytes)
+            out.putBoolean("ok", true)
+            out.putString("text", result.text)
+            out.putBoolean("truncated", result.truncated)
+            out.putLong("size", result.size)
+            out.putString("encoding", result.encoding)
+        } catch (e: Exception) {
+            Log.w(TAG, "readTextFile failed: ${e.message}")
+            out.putBoolean("ok", false)
+            out.putString("error", e.message ?: "read failed")
+        }
+        return out
     }
 
     override fun releaseVirtualDisplay() {

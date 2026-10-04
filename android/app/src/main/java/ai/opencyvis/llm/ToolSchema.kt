@@ -25,6 +25,9 @@ object ToolSchema {
                             put("tap")
                             put("long_press")
                             put("open_app")
+                            put("list_apps")
+                            put("read_file")
+                            put("write_file")
                             put("swipe")
                             put("key_event")
                             put("type_text")
@@ -52,6 +55,18 @@ object ToolSchema {
                     put("app_name", JSONObject().apply {
                         put("type", "string")
                         put("description", LlmPrompts.paramDescription("app_name"))
+                    })
+                    put("keyword", JSONObject().apply {
+                        put("type", "string")
+                        put("description", LlmPrompts.paramDescription("keyword"))
+                    })
+                    put("path", JSONObject().apply {
+                        put("type", "string")
+                        put("description", LlmPrompts.paramDescription("path"))
+                    })
+                    put("filename", JSONObject().apply {
+                        put("type", "string")
+                        put("description", LlmPrompts.paramDescription("filename"))
                     })
                     put("direction", JSONObject().apply {
                         put("type", "string")

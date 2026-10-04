@@ -565,4 +565,79 @@ class ActionTest {
         assertEquals("Beijing", remember.value)
         assertEquals("preference", remember.category)
     }
+
+    // --- ReadFile tests ---
+
+    @Test
+    fun `ReadFile action has correct type name and properties`() {
+        val action = Action.ReadFile(path = "/sdcard/Download/report.txt", thought = "read the report")
+        assertEquals("read_file", action.typeName)
+        assertEquals("/sdcard/Download/report.txt", action.path)
+        assertEquals("read the report", action.thought)
+    }
+
+    @Test
+    fun `fromMap parses read_file action`() {
+        val map = mapOf<String, Any?>(
+            "action_type" to "read_file",
+            "path" to "/sdcard/Download/notes.txt",
+            "thought" to "user asked to read notes"
+        )
+        val action = Action.fromMap(map)
+        assertTrue(action is Action.ReadFile)
+        val readFile = action as Action.ReadFile
+        assertEquals("/sdcard/Download/notes.txt", readFile.path)
+        assertEquals("user asked to read notes", readFile.thought)
+    }
+
+    @Test
+    fun `fromMap parses read_file with missing path defaults to empty`() {
+        val map = mapOf<String, Any?>(
+            "action_type" to "read_file",
+            "thought" to "forgot the path"
+        )
+        val action = Action.fromMap(map)
+        assertTrue(action is Action.ReadFile)
+        assertEquals("", (action as Action.ReadFile).path)
+    }
+
+    // --- WriteFile tests ---
+
+    @Test
+    fun `WriteFile action has correct type name and properties`() {
+        val action = Action.WriteFile(filename = "report.txt", text = "hello", thought = "save report")
+        assertEquals("write_file", action.typeName)
+        assertEquals("report.txt", action.filename)
+        assertEquals("hello", action.text)
+        assertEquals("save report", action.thought)
+    }
+
+    @Test
+    fun `fromMap parses write_file action`() {
+        val map = mapOf<String, Any?>(
+            "action_type" to "write_file",
+            "filename" to "notes/2026.txt",
+            "text" to "会议纪要内容",
+            "thought" to "saving notes"
+        )
+        val action = Action.fromMap(map)
+        assertTrue(action is Action.WriteFile)
+        val wf = action as Action.WriteFile
+        assertEquals("notes/2026.txt", wf.filename)
+        assertEquals("会议纪要内容", wf.text)
+        assertEquals("saving notes", wf.thought)
+    }
+
+    @Test
+    fun `fromMap parses write_file with missing fields defaults to empty`() {
+        val map = mapOf<String, Any?>(
+            "action_type" to "write_file",
+            "thought" to "no filename given"
+        )
+        val action = Action.fromMap(map)
+        assertTrue(action is Action.WriteFile)
+        val wf = action as Action.WriteFile
+        assertEquals("", wf.filename)
+        assertEquals("", wf.text)
+    }
 }

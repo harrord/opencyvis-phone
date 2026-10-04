@@ -85,6 +85,17 @@ sealed class Action(val typeName: String, open val thought: String) {
         override val thought: String = ""
     ) : Action("list_apps", thought)
 
+    data class ReadFile(
+        val path: String,
+        override val thought: String = ""
+    ) : Action("read_file", thought)
+
+    data class WriteFile(
+        val filename: String,
+        val text: String,
+        override val thought: String = ""
+    ) : Action("write_file", thought)
+
     data class SaveRoutine(
         val routineName: String,
         val routineIcon: String,
@@ -192,6 +203,15 @@ sealed class Action(val typeName: String, open val thought: String) {
                 )
                 "list_apps" -> ListApps(
                     keyword = (map["keyword"] as? String) ?: "",
+                    thought = thought
+                )
+                "read_file" -> ReadFile(
+                    path = (map["path"] as? String) ?: "",
+                    thought = thought
+                )
+                "write_file" -> WriteFile(
+                    filename = (map["filename"] as? String) ?: "",
+                    text = (map["text"] as? String) ?: "",
                     thought = thought
                 )
                 "save_routine" -> SaveRoutine(

@@ -320,9 +320,9 @@ class ToolSchemaTest {
     @Test
     fun `all action_type enum values are present in real schema`() {
         val expectedActions = setOf(
-            "tap", "long_press", "open_app", "swipe", "key_event", "type_text",
-            "wait", "sleep", "finish", "fail", "ask_user", "handoff_user", "note",
-            "remember", "save_routine", "notify"
+            "tap", "long_press", "open_app", "list_apps", "read_file", "write_file",
+            "swipe", "key_event", "type_text", "wait", "sleep", "finish", "fail",
+            "ask_user", "handoff_user", "note", "remember", "save_routine", "notify"
         )
 
         val enumArray = actualProperties()
@@ -336,6 +336,42 @@ class ToolSchemaTest {
             expectedActions,
             actualActions
         )
+    }
+
+    @Test
+    fun `schema includes write_file action with filename parameter`() {
+        val props = actualProperties()
+        val enumArray = props.getJSONObject("action_type").getJSONArray("enum")
+        val values = (0 until enumArray.length()).map { enumArray.getString(it) }.toSet()
+        assertTrue("action_type enum should contain write_file", values.contains("write_file"))
+
+        assertTrue("Schema must have filename property", props.has("filename"))
+        assertEquals("string", props.getJSONObject("filename").getString("type"))
+        assertTrue(props.getJSONObject("filename").getString("description").contains("write_file"))
+    }
+
+    @Test
+    fun `schema includes read_file action with path parameter`() {
+        val props = actualProperties()
+        val enumArray = props.getJSONObject("action_type").getJSONArray("enum")
+        val values = (0 until enumArray.length()).map { enumArray.getString(it) }.toSet()
+        assertTrue("action_type enum should contain read_file", values.contains("read_file"))
+
+        assertTrue("Schema must have path property", props.has("path"))
+        assertEquals("string", props.getJSONObject("path").getString("type"))
+        assertTrue(props.getJSONObject("path").getString("description").contains("read_file"))
+    }
+
+    @Test
+    fun `schema includes list_apps action with keyword parameter`() {
+        val props = actualProperties()
+        val enumArray = props.getJSONObject("action_type").getJSONArray("enum")
+        val values = (0 until enumArray.length()).map { enumArray.getString(it) }.toSet()
+        assertTrue("action_type enum should contain list_apps", values.contains("list_apps"))
+
+        assertTrue("Schema must have keyword property", props.has("keyword"))
+        assertEquals("string", props.getJSONObject("keyword").getString("type"))
+        assertTrue(props.getJSONObject("keyword").getString("description").contains("list_apps"))
     }
 
     @Test

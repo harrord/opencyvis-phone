@@ -56,9 +56,11 @@ Memory rules:
 - For temporary task info (e.g., prices found during comparison, page state), use note in 'key: value' format — visible only in subsequent steps of the current task.
 - For stable long-term user preferences, frequently used info, or workflow habits, use remember(memory_key, memory_value, memory_category) — stored in global memory and visible in future tasks. Only use remember for confirmed long-term stable information.
 
-Available actions: tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter), notify(notification_title, notification_text)
+Available actions: tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), read_file(path), write_file(filename, text), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter), notify(notification_title, notification_text)
 - sleep(duration_seconds): Sleep for the exact duration in seconds (convert minutes: 2 min = 120). ONLY use when the user explicitly requires waiting a specific duration between steps — never skip a user-requested wait. For page loading, processing, or re-observing, use wait instead — never sleep in those cases.
 - list_apps(keyword): Search installed apps by keyword. Returns matching app names you can use with open_app. Use when open_app fails to find an app.
+- read_file(path): Read a plain-text file directly from shared storage (only /sdcard/Download and /sdcard/Documents are allowed, e.g. /sdcard/Download/report.txt). Use when the user asks you to read/open/check a specific file on the device. Do NOT open a file manager app for this.
+- write_file(filename, text): Write a plain-text file to /sdcard/Download/OpenCyvis (this app's dedicated folder). The filename is relative to that folder, e.g. 'report.txt' or 'notes/2026.txt'. Files this app created earlier are overwritten with the new content; files created by the user or other apps are never modified — if the name is already taken by such a file, the system saves it under a slightly different name and reports the actual path back. Use when the user asks to save/store/export results, logs, or notes as a file on the device.
 - note action: Record important current task information (e.g., prices, model numbers), format 'key: value' (e.g., 'JD price: 5999 yuan'). Recorded info is visible in every subsequent step of this task.
 - You can also attach a note parameter when performing other actions (e.g., tap, open_app) to record info without a separate step.
 - When comparing across apps (e.g., price comparison), make sure to record results with note after finding them in each app, then summarize and compare at the end.
@@ -93,9 +95,11 @@ Routine & schedule rules:
 - 临时任务信息（如本轮比价中查到的价格、页面状态）用 note，格式为 'key: value'，只在当前任务后续步骤可见。
 - 长期稳定的用户偏好、常用信息、工作流习惯用 remember(memory_key, memory_value, memory_category)，会写入全局记忆，并在后续任务中可见。只有确定是长期稳定信息时才 remember。
 
-可用操作：tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter), notify(notification_title, notification_text)
+可用操作：tap(x,y), long_press(x,y), open_app(app_name), list_apps(keyword), read_file(path), write_file(filename, text), swipe(direction), key_event(key), type_text(text), wait, sleep(duration_seconds), finish, fail, ask_user(question), handoff_user(handoff_reason), note, remember(memory_key,memory_value,memory_category), save_routine(routine_name, routine_icon, schedule_type, schedule_time, schedule_repeat, schedule_interval, schedule_location, schedule_on_enter), notify(notification_title, notification_text)
 - sleep(duration_seconds)：按指定时长等待，单位为秒（分钟需换算：2分钟=120）。仅当用户明确要求步骤之间等待特定时长时使用，不得跳过用户要求的等待。页面加载、处理中重新观察等场景一律用 wait，禁止用 sleep。
 - list_apps(keyword)：按关键词搜索已安装的应用，返回匹配的应用名称列表，可配合 open_app 使用。当 open_app 找不到应用时使用。
+- read_file(path)：直接读取共享存储中的纯文本文件（仅允许 /sdcard/Download 和 /sdcard/Documents 目录，如 /sdcard/Download/report.txt）。当用户要求读取/查看设备上的某个文件时使用，不要为此打开文件管理器应用。
+- write_file(filename, text)：将纯文本文件写入 /sdcard/Download/OpenCyvis（本应用专属目录）。filename 是相对该目录的路径，如 'report.txt' 或 'notes/2026.txt'。会覆盖本应用之前创建的同名文件；用户或其他应用创建的文件不会被修改——如遇重名，系统会自动换一个相近的名字保存，并回报实际路径。当用户要求把结果/日志/笔记保存为设备上的文件时使用。
 - note 操作：用于记录当前任务重要信息（如价格、型号），格式为 'key: value'（如 '京东价格: 5999元'）。记录的信息会在本任务后续每一步可见。
 - 你也可以在执行其他操作（如 tap、open_app）时同时附带 note 参数来记录信息，不需要单独一步。
 - 跨应用比较时（如比价），务必在每个应用中查到结果后用 note 记录，最后汇总比较。
@@ -116,9 +120,11 @@ Routine & schedule rules:
         "y" to "Tap y-coordinate, 0-1000 normalized",
         "app_name" to "App name to open (for open_app), e.g. settings",
         "keyword" to "Keyword to search installed apps (for list_apps), e.g. weather",
+        "path" to "Absolute path of a text file to read (for read_file), e.g. /sdcard/Download/report.txt. Only files under /sdcard/Download and /sdcard/Documents are allowed.",
+        "filename" to "File to write (for write_file), relative to /sdcard/Download/OpenCyvis, e.g. 'report.txt' or 'notes/2026.txt'. Overwrites only files created by this app.",
         "direction" to "Swipe direction (for swipe)",
         "key" to "Key name (for key_event)",
-        "text" to "Text to input (for type_text)",
+        "text" to "Text to input (for type_text), or the full file content to write (for write_file)",
         "duration_seconds" to "Sleep duration in seconds (for sleep). Convert minutes to seconds, e.g. 2 minutes = 120. Range 1-600.",
         "reason" to "Failure reason (for fail)",
         "question" to "Question for the user when clarification or confirmation is needed (for ask_user)",
@@ -149,9 +155,11 @@ Routine & schedule rules:
         "y" to "点击的y坐标，0-1000归一化",
         "app_name" to "要打开的应用名（open_app时使用），如 settings",
         "keyword" to "搜索已安装应用的关键词（list_apps时使用），如 天气",
+        "path" to "要读取的文本文件的绝对路径（read_file时使用），如 /sdcard/Download/report.txt。仅允许 /sdcard/Download 和 /sdcard/Documents 目录下的文件。",
+        "filename" to "要写入的文件（write_file时使用），相对于 /sdcard/Download/OpenCyvis 的路径，如 'report.txt' 或 'notes/2026.txt'。仅覆盖本应用创建的文件。",
         "direction" to "滑动方向（swipe时使用）",
         "key" to "按键名（key_event时使用）",
-        "text" to "要输入的文本（type_text时使用）",
+        "text" to "要输入的文本（type_text时使用），或要写入文件的完整内容（write_file时使用）",
         "duration_seconds" to "sleep 的等待时长，单位秒（sleep时使用）。分钟需换算成秒，如 2分钟 = 120。范围 1-600。",
         "reason" to "失败原因（fail时使用）",
         "question" to "当需要用户澄清或确认时的问题（ask_user时使用）",

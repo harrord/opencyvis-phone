@@ -1,5 +1,6 @@
 package ai.opencyvis.backend
 
+import android.os.Bundle
 import android.view.InputEvent
 import android.view.Surface
 
@@ -17,6 +18,14 @@ interface PrivilegeBackend {
     fun ensureVdHasContent(displayId: Int)
     fun getTopTaskIdOnDisplay(displayId: Int, callerPackage: String): Int
     fun moveTaskToDisplay(taskId: Int, targetDisplayId: Int): Boolean
+
+    /**
+     * Read a plain-text file from allowlisted shared storage at this backend's uid
+     * (shell/system), exempt from Scoped Storage media-only restrictions.
+     * Never throws; failures are reported via the returned Bundle's "error" key.
+     */
+    fun readTextFile(path: String, maxBytes: Int): Bundle
+
     fun destroy()
 }
 

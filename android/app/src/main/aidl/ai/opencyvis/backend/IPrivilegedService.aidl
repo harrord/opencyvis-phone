@@ -1,5 +1,6 @@
 package ai.opencyvis.backend;
 
+import android.os.Bundle;
 import android.os.SharedMemory;
 import android.view.Surface;
 
@@ -32,4 +33,12 @@ interface IPrivilegedService {
     /** Force-stop a package (shell uid). Used to dismiss split-screen by killing the
         adjacent Settings pane after ADB pairing completes. */
     void forceStopPackage(String packageName);
+
+    /** Read a plain-text file from allowlisted shared storage (Download/Documents) at the
+        service's uid (shell/system), which is exempt from Scoped Storage restrictions.
+        @param absolutePath path is re-validated against the allowlist service-side
+        @param maxBytes hard cap for the returned text (Binder transaction limit)
+        @return Bundle keys: ok(boolean), text(String), error(String),
+                truncated(boolean), size(long), encoding(String) */
+    Bundle readTextFile(String absolutePath, int maxBytes);
 }

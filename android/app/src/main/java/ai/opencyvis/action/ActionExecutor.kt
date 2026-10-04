@@ -2,6 +2,8 @@ package ai.opencyvis.action
 
 import android.content.Context
 import android.graphics.Point
+import ai.opencyvis.backend.FileTextReader
+import ai.opencyvis.backend.FileTextWriter
 import ai.opencyvis.backend.PrivilegeBackend
 import ai.opencyvis.backend.SystemBackend
 import ai.opencyvis.engine.StepResult
@@ -20,7 +22,7 @@ class ActionExecutor(
     private val displayId: Int = 0,
     displaySize: Point? = null,
     private val onOpenAppSuccess: ((packageName: String) -> Unit)? = null,
-    backend: PrivilegeBackend = SystemBackend(),
+    private val backend: PrivilegeBackend = SystemBackend(),
     private val blacklistedPackages: Set<String> = emptySet()
 ) {
 
@@ -152,6 +154,39 @@ class ActionExecutor(
                         true to "No apps found matching '${action.keyword}'. Try a different keyword, or use list_apps without keyword to see all apps."
                     } else {
                         true to "Installed apps$kw (${apps.size}): ${apps.joinToString(", ")}"
+                    }
+                }
+
+                is Action.ReadFile -> {
+                    // Backend channel only: the privileged process (shell/system uid) reads
+                    // the file. The agent loop cannot run without a backend, so this is
+                    // always available whenever read_file can execute.
+                    val r = backend.readTextFile(action.path, FileTextReader.DEFAULT_MAX_BYTES)
+                    if (r.getBoolean("ok")) {
+                        val text = r.getString("text") ?: ""
+                        val head = if (r.getBoolean("truncated")) {
+                            "[Truncated: file is ${r.getLong("size")} bytes, showing first ${text.length} chars]\n"
+                        } else ""
+                        true to "Read ${action.path} (${r.getString("encoding") ?: "?"}, " +
+                            "${r.getLong("size")} bytes):\n$head$text"
+                    } else {
+                        // Actionable failure: tell the LLM what to do next.
+                        false to "Read failed: ${r.getString("error") ?: "unknown error"}"
+                    }
+                }
+
+                is Action.WriteFile -> {
+                    // App-process MediaStore write: the system enforces "own files only".
+                    // No privileged backend involved, no user confirmation needed.
+                    val r = FileTextWriter.write(context, action.filename, action.text)
+                    when {
+                        !r.ok -> false to "Write failed: ${r.error}"
+                        r.renamed -> true to
+                            "Wrote ${r.path} (${r.bytes} bytes, UTF-8) — '${action.filename}' " +
+                            "was already taken by a file this app did not create, " +
+                            "so the system chose a different name"
+                        r.overwritten -> true to "Overwrote ${r.path} (${r.bytes} bytes, UTF-8)"
+                        else -> true to "Wrote ${r.path} (${r.bytes} bytes, UTF-8)"
                     }
                 }
 

@@ -1,5 +1,6 @@
 package ai.opencyvis.backend
 
+import android.os.Bundle
 import android.util.Log
 import android.view.InputEvent
 import android.view.Surface
@@ -63,6 +64,26 @@ class SystemBackend : PrivilegeBackend {
 
     override fun moveTaskToDisplay(taskId: Int, targetDisplayId: Int): Boolean {
         return DisplayOps.moveTaskToDisplay(taskId, targetDisplayId)
+    }
+
+    // System flavor runs in-process at uid 1000 — read shared storage directly.
+    override fun readTextFile(path: String, maxBytes: Int): Bundle {
+        return try {
+            val result = FileTextReader.read(path, maxBytes)
+            Bundle().apply {
+                putBoolean("ok", true)
+                putString("text", result.text)
+                putBoolean("truncated", result.truncated)
+                putLong("size", result.size)
+                putString("encoding", result.encoding)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "readTextFile failed: ${e.message}")
+            Bundle().apply {
+                putBoolean("ok", false)
+                putString("error", e.message ?: "read failed")
+            }
+        }
     }
 
     override fun destroy() {}

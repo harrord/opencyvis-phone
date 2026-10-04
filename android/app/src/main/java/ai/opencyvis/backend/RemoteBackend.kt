@@ -1,5 +1,6 @@
 package ai.opencyvis.backend
 
+import android.os.Bundle
 import android.os.DeadObjectException
 import android.os.Parcel
 import android.os.SharedMemory
@@ -126,6 +127,24 @@ class RemoteBackend(
     override fun moveTaskToDisplay(taskId: Int, targetDisplayId: Int): Boolean {
         return try { binder.moveTaskToDisplay(taskId, targetDisplayId) }
                catch (_: Exception) { false }
+    }
+
+    override fun readTextFile(path: String, maxBytes: Int): Bundle {
+        return try {
+            binder.readTextFile(path, maxBytes)
+        } catch (e: Exception) {
+            // Follow this class's convention: never let exceptions escape to the agent loop.
+            Log.w(TAG, "readTextFile failed: ${e.javaClass.simpleName}: ${e.message}")
+            Bundle().apply {
+                putBoolean("ok", false)
+                putString(
+                    "error",
+                    "privileged service read failed (${e.javaClass.simpleName}); " +
+                        "the backend may have disconnected — ask the user to reconnect " +
+                        "wireless debugging or Shizuku"
+                )
+            }
+        }
     }
 
     override fun destroy() {
